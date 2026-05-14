@@ -11,7 +11,7 @@ export async function transcribeCloud(audio: Blob, opts: AsrOptions): Promise<Tr
   }
 
   const form = new FormData();
-  form.append('file', audio, 'speech.wav');
+  form.append('file', audio, mediaFileName(audio));
   form.append('model', opts.model);
   if (opts.language && opts.language !== 'auto') form.append('language', opts.language);
 
@@ -31,6 +31,14 @@ export async function transcribeCloud(audio: Blob, opts: AsrOptions): Promise<Tr
     durationMs: 0,
     provider: opts.provider,
   };
+}
+
+export function mediaFileName(audio: Blob): string {
+  if (audio.type.includes('webm')) return 'speech.webm';
+  if (audio.type.includes('ogg')) return 'speech.ogg';
+  if (audio.type.includes('mpeg')) return 'speech.mp3';
+  if (audio.type.includes('mp4')) return 'speech.m4a';
+  return 'speech.wav';
 }
 
 function providerPath(provider: AsrOptions['provider']): string {
