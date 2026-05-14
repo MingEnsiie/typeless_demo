@@ -27,11 +27,14 @@ describe('mergeDefaultEndpoints', () => {
 });
 
 describe('mergeDefaultModels', () => {
-  it('adds Qwen3 ASR to old persisted model lists', () => {
+  it('adds local ASR and installed Ollama models to old persisted model lists', () => {
     const merged = mergeDefaultModels([
       { id: 'qwen3-4b', label: 'Ollama qwen3:4b', size: '2.4 GB', quantization: 'q4', progress: 100, status: 'ready' },
     ]);
 
     expect(merged.find((model) => model.id === 'qwen3-asr-1.7b')?.label).toBe('Qwen3-ASR-1.7B Local');
+    expect(merged.find((model) => model.id === 'qwen35-4b')?.label).toBe('Qwen3.5-4B Local');
+    expect(merged.find((model) => model.id === 'gemma4-e2b')?.label).toBe('Ollama gemma4:e2b');
+    expect(merged.find((model) => model.id === 'gemma4-e4b')?.label).toBe('Ollama gemma4:e4b');
   });
 });

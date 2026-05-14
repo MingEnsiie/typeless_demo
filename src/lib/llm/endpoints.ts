@@ -2,6 +2,17 @@ import type { EndpointConfig } from '@/types';
 
 export const DEFAULT_ENDPOINTS: EndpointConfig[] = [
   {
+    id: 'qwen35-local',
+    label: 'Qwen3.5-4B Local',
+    kind: 'llm',
+    baseUrl: '/api/llm/qwen35-local/v1',
+    model: 'Qwen3.5-4B',
+    modelOptions: ['Qwen3.5-4B'],
+    localPath: '/home/mingzh/Documents/Workplace/QwenAsset/model/Qwen3.5-4B',
+    apiKey: '',
+    enabled: true,
+  },
+  {
     id: 'deepseek',
     label: 'DeepSeek V4 Flash',
     kind: 'llm',
@@ -23,10 +34,11 @@ export const DEFAULT_ENDPOINTS: EndpointConfig[] = [
   },
   {
     id: 'ollama',
-    label: 'Ollama qwen3:4b',
+    label: 'Ollama Local',
     kind: 'llm',
     baseUrl: '/api/llm/ollama/v1',
-    model: 'qwen3:4b',
+    model: 'gemma4:e2b',
+    modelOptions: ['gemma4:e2b', 'gemma4:e4b'],
     apiKey: '',
     enabled: true,
   },

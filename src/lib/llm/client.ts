@@ -12,7 +12,7 @@ export interface ChatOptions {
 }
 
 export async function chatComplete(messages: ChatMessage[], opts: ChatOptions): Promise<string> {
-  if (!opts.apiKey && !opts.baseUrl.includes('ollama')) {
+  if (!opts.apiKey && !opts.baseUrl.includes('ollama') && !opts.baseUrl.includes('qwen35-local')) {
     return demoCompletion(messages, opts.onToken);
   }
 

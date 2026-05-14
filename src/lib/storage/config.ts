@@ -33,9 +33,11 @@ interface ConfigState {
 
 const DEFAULT_MODELS: ModelDownload[] = [
   { id: 'qwen3-asr-1.7b', label: 'Qwen3-ASR-1.7B Local', size: 'local path', quantization: 'fp16', progress: 100, status: 'ready' },
+  { id: 'qwen35-4b', label: 'Qwen3.5-4B Local', size: '18 GB', quantization: 'fp16', progress: 100, status: 'ready' },
   { id: 'whisper-tiny', label: 'Whisper Tiny WebGPU', size: '151 MB', quantization: 'q8', progress: 0, status: 'not-downloaded' },
   { id: 'whisper-base', label: 'Whisper Base WASM', size: '290 MB', quantization: 'q8', progress: 0, status: 'not-downloaded' },
-  { id: 'qwen3-4b', label: 'Ollama qwen3:4b', size: '2.4 GB', quantization: 'q4', progress: 100, status: 'ready' },
+  { id: 'gemma4-e2b', label: 'Ollama gemma4:e2b', size: '6.7 GB', quantization: 'q4', progress: 100, status: 'ready' },
+  { id: 'gemma4-e4b', label: 'Ollama gemma4:e4b', size: '8.9 GB', quantization: 'q4', progress: 100, status: 'ready' },
 ];
 
 export function mergeDefaultEndpoints(savedEndpoints: EndpointConfig[] | undefined): EndpointConfig[] {
@@ -61,7 +63,7 @@ export function mergeDefaultEndpoints(savedEndpoints: EndpointConfig[] | undefin
 
 export function mergeDefaultModels(savedModels: ModelDownload[] | undefined): ModelDownload[] {
   const savedById = new Map((savedModels ?? []).map((model) => [model.id, model]));
-  const merged = DEFAULT_MODELS.map((defaults) => ({ ...defaults, ...savedById.get(defaults.id), label: defaults.label }));
+    const merged = DEFAULT_MODELS.map((defaults) => ({ ...defaults, ...savedById.get(defaults.id), label: defaults.label }));
   const custom = (savedModels ?? []).filter((model) => !DEFAULT_MODELS.some((defaults) => defaults.id === model.id));
   return [...merged, ...custom];
 }
@@ -76,7 +78,7 @@ export const useConfigStore = create<ConfigState>()(
       offlineMode: false,
       darkMode: false,
       targetLang: 'en',
-      llmEndpointId: 'deepseek',
+      llmEndpointId: 'qwen35-local',
       asrEndpointId: 'groq',
       endpoints: DEFAULT_ENDPOINTS,
       dictionary: [
@@ -124,12 +126,21 @@ export const useConfigStore = create<ConfigState>()(
           ...saved,
           endpoints: mergeDefaultEndpoints(saved?.endpoints),
           models: mergeDefaultModels(saved?.models),
-          asrEndpointId:
-            saved?.asrEndpointId && mergeDefaultEndpoints(saved.endpoints).some((endpoint) => endpoint.id === saved.asrEndpointId)
-              ? saved.asrEndpointId
-              : current.asrEndpointId,
+          llmEndpointId: resolveLlmEndpointId(saved, current.llmEndpointId),
+          asrEndpointId: resolveEndpointId(saved?.asrEndpointId, mergeDefaultEndpoints(saved?.endpoints), current.asrEndpointId),
         };
       },
     },
   ),
 );
+
+function resolveLlmEndpointId(saved: Partial<ConfigState> | undefined, fallback: string): string {
+  const endpoints = mergeDefaultEndpoints(saved?.endpoints);
+  const savedOllama = saved?.endpoints?.find((endpoint) => endpoint.id === 'ollama');
+  if (saved?.llmEndpointId === 'ollama' && (!savedOllama || savedOllama.model === 'qwen3:4b')) return 'qwen35-local';
+  return resolveEndpointId(saved?.llmEndpointId, endpoints, fallback);
+}
+
+function resolveEndpointId(savedId: string | undefined, endpoints: EndpointConfig[], fallback: string): string {
+  return savedId && endpoints.some((endpoint) => endpoint.id === savedId) ? savedId : fallback;
+}
