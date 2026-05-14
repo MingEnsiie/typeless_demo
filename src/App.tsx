@@ -29,7 +29,7 @@ import { useConfigStore } from '@/lib/storage/config';
 import { deleteHistoryItem, loadHistory, saveHistory } from '@/lib/storage/history';
 import { appendFinalOutput, replaceRange } from '@/lib/text/selection';
 import { typelessMachine } from '@/machine/typeless.machine';
-import type { HistoryItem, TypelessMode } from '@/types';
+import type { HistoryItem, SelectionSnapshot, TypelessMode } from '@/types';
 
 const actor = createActor(typelessMachine).start();
 
@@ -43,6 +43,8 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rewriting, setRewriting] = useState(false);
+  const [voiceInstructionSelection, setVoiceInstructionSelection] = useState<SelectionSnapshot | null>(null);
+  const [voiceInstructionState, setVoiceInstructionState] = useState<'idle' | 'waiting' | 'recording' | 'processing'>('idle');
 
   const config = useConfigStore();
   const recorder = useRecorder();
@@ -64,12 +66,73 @@ export default function App() {
   }, [config.darkMode]);
 
   const runRecording = async (mode: TypelessMode) => {
+    if (voiceInstructionState !== 'idle') return;
     try {
       config.setMode(mode);
       actor.send({ type: 'HOTKEY_DOWN', mode });
       await recorder.start();
     } catch (error) {
       fail(error);
+    }
+  };
+
+  const waitForVoiceRewriteInstruction = () => {
+    if (!selection || rewriting) return;
+    setVoiceInstructionSelection(selection);
+    setVoiceInstructionState('waiting');
+    toast.message('长按右 Alt 说出改写要求，松开后自动改写选区');
+  };
+
+  const startVoiceRewriteInstruction = async () => {
+    if (!voiceInstructionSelection || voiceInstructionState !== 'waiting') return;
+    try {
+      setVoiceInstructionState('recording');
+      await recorder.start();
+    } catch (error) {
+      setVoiceInstructionState('waiting');
+      fail(error);
+    }
+  };
+
+  const stopVoiceRewriteInstruction = async () => {
+    if (!voiceInstructionSelection || voiceInstructionState !== 'recording' || !recorder.recording) return;
+    const target = voiceInstructionSelection;
+    try {
+      setVoiceInstructionState('processing');
+      setRewriting(true);
+      const audio = await recorder.stop();
+      const transcript = await transcribe(audio, asrEndpoint, config.offlineMode);
+      const instruction = transcript.text.trim();
+      if (!instruction) throw new Error('没有识别到改写指令');
+      config.setMode('rewrite');
+      actor.send({ type: 'REWRITE_PRESET', selection: target.text });
+      actor.send({ type: 'ASR_DONE', raw: instruction });
+      setRaw(`选区：${target.text}\n语音指令：${instruction}`);
+      setStreaming('');
+      const output = await llm.rewrite(target.text, instruction, config.targetLang, rule, config.dictionary, llmEndpoint, setStreaming);
+      setFinalText(output);
+      actor.send({ type: 'LLM_DONE', final: output });
+      setDraft((current) => replaceRange(current, target.start, target.end, output).value);
+      await inject.copy(output);
+      actor.send({ type: 'INJECT_DONE' });
+      const item = await saveHistory({
+        id: crypto.randomUUID(),
+        mode: 'rewrite',
+        raw: `选区：${target.text}\n语音指令：${instruction}`,
+        finalText: output,
+        appContext: config.appContext,
+        targetLang: config.targetLang,
+        createdAt: new Date().toISOString(),
+      });
+      setHistory(item);
+      clearSelection();
+      toast.success('已按语音指令改写选区');
+    } catch (error) {
+      fail(error);
+    } finally {
+      setRewriting(false);
+      setVoiceInstructionState('idle');
+      setVoiceInstructionSelection(null);
     }
   };
 
@@ -157,6 +220,8 @@ export default function App() {
     onDown: runRecording,
     onUp: stopRecording,
     onTranslate: () => runRecording('translate'),
+    onRightAltDown: startVoiceRewriteInstruction,
+    onRightAltUp: stopVoiceRewriteInstruction,
   });
 
   const stateLabel = snapshot.value.toString();
@@ -202,8 +267,9 @@ export default function App() {
           />
           <SelectionPopover
             selection={selection}
+            voiceInstructionState={voiceInstructionState}
             onPreset={rewriteSelection}
-            onCustom={() => rewriteSelection('Make this clearer and more specific.')}
+            onCustom={waitForVoiceRewriteInstruction}
             onClose={clearSelection}
           />
           <ResultPanel

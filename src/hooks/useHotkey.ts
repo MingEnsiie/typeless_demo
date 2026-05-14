@@ -7,14 +7,21 @@ interface HotkeyOptions {
   onDown: (mode: TypelessMode) => void;
   onUp: () => void;
   onTranslate: () => void;
+  onRightAltDown?: () => void;
+  onRightAltUp?: () => void;
 }
 
-export function useHotkey({ disabled, mode, onDown, onUp, onTranslate }: HotkeyOptions) {
+export function useHotkey({ disabled, mode, onDown, onUp, onTranslate, onRightAltDown, onRightAltUp }: HotkeyOptions) {
   useEffect(() => {
     if (disabled) return undefined;
     const down = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+      if (event.code === 'AltRight' && !event.repeat && onRightAltDown) {
+        event.preventDefault();
+        onRightAltDown();
+        return;
+      }
       if (event.code === 'AltLeft' && !event.repeat && !isTyping) {
         event.preventDefault();
         onDown(mode);
@@ -25,6 +32,11 @@ export function useHotkey({ disabled, mode, onDown, onUp, onTranslate }: HotkeyO
       }
     };
     const up = (event: KeyboardEvent) => {
+      if (event.code === 'AltRight' && onRightAltUp) {
+        event.preventDefault();
+        onRightAltUp();
+        return;
+      }
       if (event.code === 'AltLeft') {
         event.preventDefault();
         onUp();
@@ -36,5 +48,5 @@ export function useHotkey({ disabled, mode, onDown, onUp, onTranslate }: HotkeyO
       window.removeEventListener('keydown', down);
       window.removeEventListener('keyup', up);
     };
-  }, [disabled, mode, onDown, onTranslate, onUp]);
+  }, [disabled, mode, onDown, onRightAltDown, onRightAltUp, onTranslate, onUp]);
 }
