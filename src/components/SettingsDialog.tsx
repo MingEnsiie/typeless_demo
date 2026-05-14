@@ -42,13 +42,24 @@ export function SettingsDialog({
                 <strong>{endpoint.label}</strong>
                 <span>{endpoint.kind.toUpperCase()} · {endpoint.baseUrl}</span>
               </div>
-              <input value={endpoint.model} onChange={(event) => onModel(endpoint.id, event.target.value)} />
+              {endpoint.modelOptions?.length ? (
+                <select value={endpoint.model} onChange={(event) => onModel(endpoint.id, event.target.value)}>
+                  {endpoint.modelOptions.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input value={endpoint.model} onChange={(event) => onModel(endpoint.id, event.target.value)} />
+              )}
               <input
                 type="password"
-                placeholder={endpoint.id === 'ollama' ? 'Ollama 不需要 key' : 'API key'}
+                placeholder={endpoint.id === 'ollama' || endpoint.localPath ? '本地模型不需要 key' : 'API key'}
                 value={endpoint.apiKey}
                 onChange={(event) => onKey(endpoint.id, event.target.value)}
               />
+              {endpoint.localPath && <span className="endpoint-path">{endpoint.localPath}</span>}
               <button
                 className={(endpoint.kind === 'llm' ? llmEndpointId : asrEndpointId) === endpoint.id ? 'active' : ''}
                 onClick={() => onSelect(endpoint.kind, endpoint.id)}

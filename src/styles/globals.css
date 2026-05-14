@@ -295,7 +295,7 @@ kbd {
 .endpoint-list { display: grid; gap: 10px; padding: 16px; }
 .endpoint-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(120px, 160px) minmax(120px, 180px) auto auto;
+  grid-template-columns: minmax(180px, 1fr) minmax(120px, 190px) minmax(120px, 180px) auto auto;
   gap: 8px;
   align-items: center;
   padding: 10px;
@@ -303,8 +303,13 @@ kbd {
   border-radius: 10px;
 }
 .endpoint-row span { display: block; color: var(--faint); font-size: 12px; margin-top: 2px; }
-.endpoint-row input { min-width: 0; height: 34px; padding: 0 9px; }
+.endpoint-row input, .endpoint-row select { min-width: 0; height: 34px; padding: 0 9px; }
 .endpoint-row button.active { color: var(--ok); border-color: #a7f3d0; background: #ecfdf5; }
+.endpoint-path {
+  grid-column: 1 / -1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+}
 .onboarding {
   position: fixed;
   right: 24px;

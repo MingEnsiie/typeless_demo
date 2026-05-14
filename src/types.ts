@@ -17,6 +17,8 @@ export interface EndpointConfig {
   kind: 'asr' | 'llm';
   baseUrl: string;
   model: string;
+  modelOptions?: string[];
+  localPath?: string;
   apiKey: string;
   enabled: boolean;
 }
