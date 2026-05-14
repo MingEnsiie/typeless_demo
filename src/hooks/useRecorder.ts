@@ -20,7 +20,7 @@ export function useRecorder() {
 
   const start = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('当前浏览器不支持麦克风录音');
+      throw new Error('当前页面无法访问麦克风。远程访问时请使用 HTTPS 地址，并在浏览器里允许麦克风权限。');
     }
     stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
     chunks.current = [];
