@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Typeless Demo 项目进度与技术报告</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5c6b82;
+      --soft: #f5f8fb;
+      --panel: #ffffff;
+      --line: #d9e2ec;
+      --blue: #2563eb;
+      --cyan: #0891b2;
+      --green: #059669;
+      --amber: #b45309;
+      --rose: #be123c;
+      --violet: #7c3aed;
+      --shadow: 0 18px 50px rgba(15, 23, 42, 0.10);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #eef4f9;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      line-height: 1.68;
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      background: var(--panel);
+      min-height: 100vh;
+      box-shadow: var(--shadow);
+    }
+
+    header.hero {
+      min-height: 520px;
+      padding: 54px 56px 34px;
+      color: white;
+      background:
+        linear-gradient(90deg, rgba(12, 32, 68, 0.92), rgba(20, 78, 108, 0.76)),
+        radial-gradient(circle at 78% 28%, rgba(34, 211, 238, 0.32), transparent 28%),
+        linear-gradient(135deg, #0f172a 0%, #1e3a8a 58%, #0e7490 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    header.hero svg {
+      position: absolute;
+      right: 26px;
+      bottom: 18px;
+      width: 47%;
+      min-width: 420px;
+      max-width: 620px;
+      opacity: 0.96;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 670px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      color: #dff8ff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    h1 {
+      margin: 28px 0 16px;
+      font-size: 54px;
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 620px;
+      color: #dbeafe;
+      font-size: 18px;
+    }
+
+    .hero-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 38px;
+      max-width: 700px;
+    }
+
+    .hero-meta div {
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(8px);
+    }
+
+    .hero-meta strong {
+      display: block;
+      color: white;
+      font-size: 20px;
+    }
+
+    .hero-meta span {
+      display: block;
+      color: #bfdbfe;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    main { padding: 42px 56px 72px; }
+    section { margin-top: 42px; }
+    section:first-child { margin-top: 0; }
+    h2 {
+      margin: 0 0 16px;
+      font-size: 28px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.3;
+    }
+    p { margin: 0 0 12px; color: var(--muted); }
+    code {
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92em;
+    }
+    pre {
+      margin: 12px 0 0;
+      padding: 14px 16px;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      overflow: auto;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    pre code {
+      padding: 0;
+      background: transparent;
+      color: inherit;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+      min-width: 0;
+    }
+
+    .card.soft { background: var(--soft); }
+    .card strong.metric {
+      display: block;
+      font-size: 30px;
+      line-height: 1.1;
+      color: var(--blue);
+      margin-bottom: 6px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-size: 12px;
+      font-weight: 700;
+      margin: 3px 4px 3px 0;
+    }
+    .tag.green { background: #ecfdf5; color: #047857; }
+    .tag.amber { background: #fffbeb; color: #92400e; }
+    .tag.violet { background: #f5f3ff; color: #6d28d9; }
+    .tag.rose { background: #fff1f2; color: #be123c; }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+      counter-reset: phase;
+    }
+    .phase {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 16px;
+      align-items: stretch;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: white;
+    }
+    .phase .num {
+      display: grid;
+      place-items: center;
+      background: #e0f2fe;
+      color: #075985;
+      font-weight: 800;
+      font-size: 18px;
+    }
+    .phase .body { padding: 14px 16px; }
+    .phase ul, .feature-list, .dense-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+    }
+    .phase li, .feature-list li, .dense-list li { margin: 4px 0; }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      min-width: 720px;
+    }
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      background: #f8fafc;
+      color: #334155;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    tr:last-child td { border-bottom: 0; }
+
+    .diagram {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbff;
+      padding: 12px;
+      overflow: hidden;
+    }
+    .diagram svg {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .caption {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .callout {
+      border-left: 4px solid var(--blue);
+      background: #eff6ff;
+      padding: 14px 16px;
+      border-radius: 8px;
+    }
+    .callout.green {
+      border-color: var(--green);
+      background: #ecfdf5;
+    }
+    .callout.amber {
+      border-color: var(--amber);
+      background: #fffbeb;
+    }
+
+    .kbd {
+      display: inline-flex;
+      min-width: 46px;
+      justify-content: center;
+      padding: 6px 10px;
+      border: 1px solid #94a3b8;
+      border-bottom-width: 3px;
+      border-radius: 7px;
+      background: white;
+      color: #0f172a;
+      font-weight: 800;
+      box-shadow: 0 3px 0 rgba(15, 23, 42, 0.08);
+    }
+
+    .footer {
+      margin-top: 52px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 860px) {
+      header.hero { padding: 34px 24px 24px; min-height: auto; }
+      header.hero svg { position: static; width: 100%; min-width: 0; margin-top: 28px; }
+      main { padding: 28px 24px 44px; }
+      h1 { font-size: 38px; }
+      .hero-meta, .grid.two, .grid.three, .grid.four { grid-template-columns: 1fr; }
+      .phase { grid-template-columns: 1fr; }
+      .phase .num { min-height: 54px; }
+    }
+
+    @media print {
+      body { background: white; }
+      .page { box-shadow: none; max-width: none; }
+      header.hero { min-height: auto; break-inside: avoid; }
+      section, .card, .diagram { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="hero-content">
+        <span class="eyebrow">Typeless Demo · 项目功能与技术报告</span>
+        <h1>语音输入、AI 改写与本地模型闭环</h1>
+        <p>
+          本报告整理当前项目进度、核心功能、交互流程、模型调用链、前端架构、Prompt 体系、测试状态与后续建议。报告为单文件 HTML，可直接在浏览器打开或打印。
+        </p>
+        <div class="hero-meta">
+          <div><strong>Vite + React</strong><span>单页网页 demo，支持远程 HTTPS 麦克风访问</span></div>
+          <div><strong>Qwen 本地模型</strong><span>本地 ASR 与本地 LLM 已接入 dev server API</span></div>
+          <div><strong>16 / 27</strong><span>当前测试文件与测试用例均通过</span></div>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 680 430" aria-label="Typeless workflow illustration" role="img">
+        <defs>
+          <linearGradient id="heroA" x1="0" x2="1">
+            <stop offset="0" stop-color="#67e8f9"/>
+            <stop offset="1" stop-color="#93c5fd"/>
+          </linearGradient>
+          <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#020617" flood-opacity="0.32"/>
+          </filter>
+        </defs>
+        <rect x="46" y="42" width="560" height="330" rx="22" fill="#f8fafc" filter="url(#shadow)"/>
+        <rect x="74" y="76" width="505" height="56" rx="12" fill="#e0f2fe"/>
+        <circle cx="104" cy="104" r="16" fill="#0ea5e9"/>
+        <rect x="132" y="92" width="202" height="11" rx="5" fill="#0f172a" opacity="0.78"/>
+        <rect x="132" y="112" width="126" height="8" rx="4" fill="#475569" opacity="0.55"/>
+        <g transform="translate(92 166)">
+          <rect width="132" height="110" rx="14" fill="#dbeafe"/>
+          <path d="M28 64 C40 20, 54 20, 66 64 S92 108, 104 64" fill="none" stroke="#2563eb" stroke-width="10" stroke-linecap="round"/>
+          <text x="66" y="92" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a8a">RAW ASR</text>
+        </g>
+        <path d="M240 220 H294" stroke="url(#heroA)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M284 202 L310 220 L284 238" fill="none" stroke="url(#heroA)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        <g transform="translate(326 166)">
+          <rect width="132" height="110" rx="14" fill="#dcfce7"/>
+          <rect x="28" y="28" width="78" height="10" rx="5" fill="#047857"/>
+          <rect x="28" y="50" width="62" height="8" rx="4" fill="#10b981"/>
+          <rect x="28" y="70" width="90" height="8" rx="4" fill="#10b981"/>
+          <text x="66" y="96" text-anchor="middle" font-size="14" font-weight="800" fill="#065f46">POLISH</text>
+        </g>
+        <path d="M474 220 H528" stroke="url(#heroA)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M518 202 L544 220 L518 238" fill="none" stroke="url(#heroA)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        <g transform="translate(560 166)">
+          <rect width="84" height="110" rx="14" fill="#fef3c7"/>
+          <rect x="24" y="23" width="36" height="50" rx="7" fill="#f59e0b"/>
+          <circle cx="42" cy="85" r="6" fill="#92400e"/>
+          <text x="42" y="104" text-anchor="middle" font-size="12" font-weight="800" fill="#92400e">INPUT</text>
+        </g>
+        <rect x="132" y="312" width="340" height="20" rx="10" fill="#bae6fd" opacity="0.9"/>
+        <rect x="132" y="340" width="230" height="16" rx="8" fill="#bfdbfe" opacity="0.85"/>
+      </svg>
+    </header>
+
+    <main>
+      <section>
+        <h2>1. 当前项目定位</h2>
+        <div class="grid two">
+          <div class="card">
+            <h3>项目目标</h3>
+            <p>
+              当前项目是一个 Typeless 风格的网页复刻 demo。它用浏览器麦克风、热键、ASR、LLM 和模拟目标应用输入区，实现“说话即输入”“框选即改写”“语音翻译”和“场景化输出”的完整体验。
+            </p>
+            <p>
+              项目强调本地可运行、远程可访问、模型路径明确、调用链可验证，而不是只展示静态 UI。
+            </p>
+          </div>
+          <div class="card soft">
+            <h3>当前可访问地址</h3>
+            <p>开发服务使用 HTTPS 启动，方便远程浏览器授予麦克风权限。</p>
+            <pre><code>cd /home/mingzh/Documents/Workplace/typeless_reproduce
+pnpm dev --host 0.0.0.0
+
+访问地址：
+https://10.110.232.76:5173/</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>2. 功能进度总览</h2>
+        <div class="grid four">
+          <div class="card"><strong class="metric">Phase 0</strong><p>工程脚手架、依赖、Vite proxy、基础文档。</p></div>
+          <div class="card"><strong class="metric">Phase 1</strong><p>录音、热键、ASR/LLM 客户端、状态机、历史落库。</p></div>
+          <div class="card"><strong class="metric">Phase 2</strong><p>场景输出、词典、框选改写、翻译模式、深色模式。</p></div>
+          <div class="card"><strong class="metric">Phase 3/4</strong><p>本地模型、模型状态展示、PWA、远程 HTTPS 可访问。</p></div>
+        </div>
+
+        <div class="timeline" style="margin-top:18px">
+          <div class="phase">
+            <div class="num">核心输入</div>
+            <div class="body">
+              <h3>左 Alt 按住说话</h3>
+              <p>主输入热键为 <span class="kbd">Left Alt</span>。按住开始录音，松开后 ASR 转写，再进入 LLM 润色或翻译，最终写入模拟目标应用 textarea 和剪贴板。</p>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="num">选区改写</div>
+            <div class="body">
+              <h3>框选文字后触发 AI 改写</h3>
+              <p>textarea 中框选文字后，页面显示稳定的选区入口与浮动 popover。支持正式化、口语化、缩短、扩写、修错、翻译选区。</p>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="num">语音指令</div>
+            <div class="body">
+              <h3>右 Alt 专用于选区语音改写指令</h3>
+              <p>点击“按语音指令改写”后，页面提示长按 <span class="kbd">Right Alt</span> 说出改写要求。松开后自动 ASR，使用语音指令改写原选区并替换。</p>
+            </div>
+          </div>
+          <div class="phase">
+            <div class="num">本地模型</div>
+            <div class="body">
+              <h3>Qwen3-ASR 与 Qwen3.5-4B</h3>
+              <p>本地 ASR 和本地 LLM 均通过 Vite dev server 暴露同源 API，避免前端直接读取本地模型目录。页面状态卡显示当前 ASR/LLM 服务、模型名和本地路径。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. 交互闭环图</h2>
+        <div class="diagram">
+          <svg viewBox="0 0 1080 430" aria-label="User workflow diagram" role="img">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#2563eb"/>
+              </marker>
+            </defs>
+            <rect width="1080" height="430" rx="10" fill="#f8fbff"/>
+            <g font-family="Inter, sans-serif">
+              <text x="44" y="48" font-size="22" font-weight="800" fill="#172033">主语音输入流程</text>
+              <g transform="translate(42 76)">
+                <rect width="160" height="70" rx="10" fill="#dbeafe" stroke="#93c5fd"/>
+                <text x="80" y="31" text-anchor="middle" font-size="15" font-weight="800" fill="#1e3a8a">按住 Left Alt</text>
+                <text x="80" y="53" text-anchor="middle" font-size="12" fill="#475569">浏览器录音</text>
+              </g>
+              <line x1="214" y1="111" x2="292" y2="111" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+              <g transform="translate(304 76)">
+                <rect width="160" height="70" rx="10" fill="#ccfbf1" stroke="#5eead4"/>
+                <text x="80" y="31" text-anchor="middle" font-size="15" font-weight="800" fill="#0f766e">ASR 转写</text>
+                <text x="80" y="53" text-anchor="middle" font-size="12" fill="#475569">Qwen3-ASR 或云端</text>
+              </g>
+              <line x1="476" y1="111" x2="554" y2="111" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+              <g transform="translate(566 76)">
+                <rect width="160" height="70" rx="10" fill="#dcfce7" stroke="#86efac"/>
+                <text x="80" y="31" text-anchor="middle" font-size="15" font-weight="800" fill="#166534">LLM 润色</text>
+                <text x="80" y="53" text-anchor="middle" font-size="12" fill="#475569">按场景输出</text>
+              </g>
+              <line x1="738" y1="111" x2="816" y2="111" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+              <g transform="translate(828 76)">
+                <rect width="190" height="70" rx="10" fill="#fef3c7" stroke="#fbbf24"/>
+                <text x="95" y="31" text-anchor="middle" font-size="15" font-weight="800" fill="#92400e">写入最终输入区</text>
+                <text x="95" y="53" text-anchor="middle" font-size="12" fill="#475569">textarea + clipboard</text>
+              </g>
+
+              <text x="44" y="218" font-size="22" font-weight="800" fill="#172033">框选文字语音改写流程</text>
+              <g transform="translate(42 246)">
+                <rect width="160" height="72" rx="10" fill="#f5f3ff" stroke="#c4b5fd"/>
+                <text x="80" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="#6d28d9">框选文字</text>
+                <text x="80" y="53" text-anchor="middle" font-size="12" fill="#475569">记录 start/end/text</text>
+              </g>
+              <line x1="214" y1="282" x2="292" y2="282" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+              <g transform="translate(304 246)">
+                <rect width="178" height="72" rx="10" fill="#ecfeff" stroke="#67e8f9"/>
+                <text x="89" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="#0e7490">点语音指令改写</text>
+                <text x="89" y="53" text-anchor="middle" font-size="12" fill="#475569">等待 Right Alt</text>
+              </g>
+              <line x1="494" y1="282" x2="572" y2="282" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+              <g transform="translate(584 246)">
+                <rect width="160" height="72" rx="10" fill="#dbeafe" stroke="#93c5fd"/>
+                <text x="80" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="#1e40af">按住 Right Alt</text>
+                <text x="80" y="53" text-anchor="middle" font-size="12" fill="#475569">说出改写要求</text>
+              </g>
+              <line x1="756" y1="282" x2="834" y2="282" stroke="#2563eb" stroke-width="3" marker-end="url(#arrow)"/>
+              <g transform="translate(846 246)">
+                <rect width="178" height="72" rx="10" fill="#dcfce7" stroke="#86efac"/>
+                <text x="89" y="29" text-anchor="middle" font-size="15" font-weight="800" fill="#166534">替换原选区</text>
+                <text x="89" y="53" text-anchor="middle" font-size="12" fill="#475569">历史 + 剪贴板</text>
+              </g>
+            </g>
+          </svg>
+          <p class="caption">图 1：当前两条核心路径。左 Alt 面向主输入，右 Alt 面向选区语音指令，避免热键职责混淆。</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>4. 系统架构</h2>
+        <div class="diagram">
+          <svg viewBox="0 0 1120 560" aria-label="Architecture diagram" role="img">
+            <defs>
+              <marker id="archArrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#0891b2"/>
+              </marker>
+            </defs>
+            <rect width="1120" height="560" rx="10" fill="#f8fbff"/>
+            <g font-family="Inter, sans-serif">
+              <rect x="42" y="54" width="278" height="420" rx="14" fill="#ffffff" stroke="#d9e2ec"/>
+              <text x="181" y="88" text-anchor="middle" font-size="20" font-weight="800" fill="#172033">浏览器前端</text>
+              <rect x="70" y="120" width="222" height="48" rx="8" fill="#dbeafe"/>
+              <text x="181" y="150" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a8a">React 19 + TypeScript</text>
+              <rect x="70" y="186" width="222" height="48" rx="8" fill="#e0f2fe"/>
+              <text x="181" y="216" text-anchor="middle" font-size="14" font-weight="800" fill="#075985">MediaRecorder + Waveform</text>
+              <rect x="70" y="252" width="222" height="48" rx="8" fill="#f5f3ff"/>
+              <text x="181" y="282" text-anchor="middle" font-size="14" font-weight="800" fill="#6d28d9">Selection Popover</text>
+              <rect x="70" y="318" width="222" height="48" rx="8" fill="#dcfce7"/>
+              <text x="181" y="348" text-anchor="middle" font-size="14" font-weight="800" fill="#166534">Zustand + localforage</text>
+              <rect x="70" y="384" width="222" height="48" rx="8" fill="#fef3c7"/>
+              <text x="181" y="414" text-anchor="middle" font-size="14" font-weight="800" fill="#92400e">XState 状态机</text>
+
+              <line x1="320" y1="264" x2="412" y2="264" stroke="#0891b2" stroke-width="3" marker-end="url(#archArrow)"/>
+
+              <rect x="424" y="54" width="280" height="420" rx="14" fill="#ffffff" stroke="#d9e2ec"/>
+              <text x="564" y="88" text-anchor="middle" font-size="20" font-weight="800" fill="#172033">Vite Dev Server</text>
+              <rect x="454" y="120" width="220" height="56" rx="8" fill="#ccfbf1"/>
+              <text x="564" y="144" text-anchor="middle" font-size="14" font-weight="800" fill="#0f766e">同源 API</text>
+              <text x="564" y="164" text-anchor="middle" font-size="12" fill="#475569">/api/asr 与 /api/llm</text>
+              <rect x="454" y="202" width="220" height="56" rx="8" fill="#e0f2fe"/>
+              <text x="564" y="226" text-anchor="middle" font-size="14" font-weight="800" fill="#075985">HTTPS + Basic SSL</text>
+              <text x="564" y="246" text-anchor="middle" font-size="12" fill="#475569">远程浏览器麦克风</text>
+              <rect x="454" y="284" width="220" height="56" rx="8" fill="#f5f3ff"/>
+              <text x="564" y="308" text-anchor="middle" font-size="14" font-weight="800" fill="#6d28d9">Node middleware</text>
+              <text x="564" y="328" text-anchor="middle" font-size="12" fill="#475569">spawn Python 脚本</text>
+              <rect x="454" y="366" width="220" height="56" rx="8" fill="#fffbeb"/>
+              <text x="564" y="390" text-anchor="middle" font-size="14" font-weight="800" fill="#92400e">云端 Proxy</text>
+              <text x="564" y="410" text-anchor="middle" font-size="12" fill="#475569">DeepSeek / MiMo / ASR</text>
+
+              <line x1="704" y1="220" x2="796" y2="154" stroke="#0891b2" stroke-width="3" marker-end="url(#archArrow)"/>
+              <line x1="704" y1="302" x2="796" y2="302" stroke="#0891b2" stroke-width="3" marker-end="url(#archArrow)"/>
+              <line x1="704" y1="386" x2="796" y2="440" stroke="#0891b2" stroke-width="3" marker-end="url(#archArrow)"/>
+
+              <rect x="808" y="54" width="270" height="420" rx="14" fill="#ffffff" stroke="#d9e2ec"/>
+              <text x="943" y="88" text-anchor="middle" font-size="20" font-weight="800" fill="#172033">模型与服务</text>
+              <rect x="838" y="120" width="210" height="70" rx="8" fill="#dcfce7"/>
+              <text x="943" y="146" text-anchor="middle" font-size="14" font-weight="800" fill="#166534">Qwen3-ASR-1.7B</text>
+              <text x="943" y="168" text-anchor="middle" font-size="12" fill="#475569">本地 8.8G · 语音转写</text>
+              <rect x="838" y="224" width="210" height="70" rx="8" fill="#dbeafe"/>
+              <text x="943" y="250" text-anchor="middle" font-size="14" font-weight="800" fill="#1e3a8a">Qwen3.5-4B</text>
+              <text x="943" y="272" text-anchor="middle" font-size="12" fill="#475569">本地 18G · vLLM 调用</text>
+              <rect x="838" y="328" width="210" height="70" rx="8" fill="#fef3c7"/>
+              <text x="943" y="354" text-anchor="middle" font-size="14" font-weight="800" fill="#92400e">OpenAI-compatible</text>
+              <text x="943" y="376" text-anchor="middle" font-size="12" fill="#475569">DeepSeek / MiMo / Ollama</text>
+              <rect x="838" y="426" width="210" height="28" rx="8" fill="#f1f5f9"/>
+              <text x="943" y="445" text-anchor="middle" font-size="12" fill="#475569">模型状态在页面可见</text>
+            </g>
+          </svg>
+          <p class="caption">图 2：前端、Vite dev server、本地模型和云端 OpenAI-compatible 服务的分层关系。</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>5. 模型与端点配置</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>类型</th>
+                <th>端点</th>
+                <th>模型</th>
+                <th>路径或 Base URL</th>
+                <th>当前用途</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>LLM</td>
+                <td>Qwen3.5-4B Local</td>
+                <td><code>Qwen3.5-4B</code></td>
+                <td><code>/home/mingzh/Documents/Workplace/QwenAsset/model/Qwen3.5-4B</code></td>
+                <td>默认本地润色、改写、翻译；通过 <code>/api/llm/qwen35-local/v1</code> 调用。</td>
+              </tr>
+              <tr>
+                <td>ASR</td>
+                <td>Qwen3-ASR-1.7B Local</td>
+                <td><code>Qwen3-ASR-1.7B</code></td>
+                <td><code>/home/mingzh/Documents/Workplace/QwenAsset/model/Qwen3-ASR-1.7B</code></td>
+                <td>默认本地语音转写；音频经 ffmpeg 转为 16k 单声道 WAV 后推理。</td>
+              </tr>
+              <tr>
+                <td>LLM</td>
+                <td>DeepSeek</td>
+                <td><code>deepseek-v4-flash</code> / <code>deepseek-v4-pro</code></td>
+                <td><code>https://api.deepseek.com</code></td>
+                <td>OpenAI-compatible 云端 LLM 备选。</td>
+              </tr>
+              <tr>
+                <td>LLM</td>
+                <td>MiMo</td>
+                <td><code>MiMo-V2.5-Pro</code></td>
+                <td><code>https://token-plan-cn.xiaomimimo.com/v1</code></td>
+                <td>OpenAI-compatible 云端 LLM 备选。</td>
+              </tr>
+              <tr>
+                <td>LLM</td>
+                <td>Ollama Local</td>
+                <td><code>gemma4:e2b</code> / <code>gemma4:e4b</code></td>
+                <td><code>http://127.0.0.1:11434</code></td>
+                <td>本机 Ollama 备选；不再默认使用旧的 <code>qwen3:4b</code>。</td>
+              </tr>
+              <tr>
+                <td>ASR</td>
+                <td>Groq / OpenAI / SiliconFlow</td>
+                <td>Whisper / SenseVoice</td>
+                <td>Vite proxy 到对应云端服务</td>
+                <td>云端 ASR 备选，需要 API key。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout amber" style="margin-top:16px">
+          <strong>本地 LLM 注意事项：</strong>
+          <p>Qwen3.5-4B 通过 vLLM 加载，冷启动较慢。当前脚本默认关闭 thinking 输出，并清洗 <code>&lt;think&gt;</code>、<code>Thinking Process:</code> 等推理过程，避免写入最终输入区。</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>6. 场景化输出与 Prompt 设计</h2>
+        <p>当前系统不是简单地把 ASR 文本“润色一下”，而是按目标应用上下文生成不同形态的输出。每个场景都有 tone、formality、markdown 和 outputGuidance。</p>
+        <div class="grid three">
+          <div class="card">
+            <h3>Email</h3>
+            <span class="tag">formal</span><span class="tag">plain text</span>
+            <p>专业邮件格式：必要时包含问候、短段落、明确请求或下一步，以及礼貌结尾。</p>
+          </div>
+          <div class="card">
+            <h3>Slack</h3>
+            <span class="tag green">team chat</span><span class="tag">compact</span>
+            <p>团队聊天格式：直接、紧凑、不使用邮件问候和签名，可用短 bullet。</p>
+          </div>
+          <div class="card">
+            <h3>WeChat</h3>
+            <span class="tag green">Chinese</span><span class="tag">casual</span>
+            <p>自然中文消息：温和、简短、口语化，避免企业邮件式结构。</p>
+          </div>
+          <div class="card">
+            <h3>Code</h3>
+            <span class="tag violet">Markdown</span><span class="tag">developer</span>
+            <p>开发者场景：保留符号和代码，偏 commit/PR/code-review 语气。</p>
+          </div>
+          <div class="card">
+            <h3>Notes</h3>
+            <span class="tag violet">structured</span><span class="tag">action items</span>
+            <p>结构化笔记：标题、项目符号、决策和行动项，便于扫描。</p>
+          </div>
+          <div class="card">
+            <h3>Casual</h3>
+            <span class="tag amber">friendly</span><span class="tag">natural</span>
+            <p>自然表达：保留个人语气，不强行结构化，不添加正式签名。</p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>7. 关键前端模块</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>模块</th>
+                <th>职责</th>
+                <th>关键文件</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>主应用编排</td>
+                <td>维护录音、ASR、LLM、历史、选区、模型配置和状态机的整体流程。</td>
+                <td><code>src/App.tsx</code></td>
+              </tr>
+              <tr>
+                <td>热键</td>
+                <td>左 Alt 主输入；右 Alt 选区语音指令；Ctrl/Cmd+Shift+T 翻译入口。</td>
+                <td><code>src/hooks/useHotkey.ts</code></td>
+              </tr>
+              <tr>
+                <td>录音与波形</td>
+                <td>MediaRecorder 采集音频，实时根据音量更新波形。</td>
+                <td><code>src/hooks/useRecorder.ts</code>、<code>src/components/Waveform.tsx</code></td>
+              </tr>
+              <tr>
+                <td>ASR 客户端</td>
+                <td>统一调用云端 ASR、本地 Qwen3-ASR 或浏览器本地模拟路径。</td>
+                <td><code>src/hooks/useAsr.ts</code>、<code>src/lib/asr/cloud.ts</code></td>
+              </tr>
+              <tr>
+                <td>LLM 客户端</td>
+                <td>统一 OpenAI-compatible chat completions 调用；无 key 时支持 demo fallback，Qwen 本地除外。</td>
+                <td><code>src/lib/llm/client.ts</code>、<code>src/lib/llm/index.ts</code></td>
+              </tr>
+              <tr>
+                <td>选区编辑</td>
+                <td>监听 textarea selection，显示固定入口与浮动工具条，支持语音指令改写闭环。</td>
+                <td><code>src/hooks/useTextareaSelection.ts</code>、<code>src/components/SelectionPopover.tsx</code></td>
+              </tr>
+              <tr>
+                <td>模型信息展示</td>
+                <td>在页面状态卡显示当前 ASR/LLM 的端点、模型名、本地路径或 API 路径。</td>
+                <td><code>src/components/CurrentModelInfo.tsx</code></td>
+              </tr>
+              <tr>
+                <td>历史会话</td>
+                <td>保存、回放、删除历史项，限制 200 条。</td>
+                <td><code>src/components/HistoryList.tsx</code>、<code>src/lib/storage/history.ts</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>8. 本地模型调用实现细节</h2>
+        <div class="grid two">
+          <div class="card">
+            <h3>本地 ASR：Qwen3-ASR-1.7B</h3>
+            <ul class="feature-list">
+              <li>浏览器上传音频到 <code>/api/asr/qwen3-local/v1/audio/transcriptions</code>。</li>
+              <li>Vite middleware 写入临时文件。</li>
+              <li>Python 脚本使用 ffmpeg 转 WAV：16kHz、单声道。</li>
+              <li>通过 <code>qwen_asr.Qwen3ASRModel.from_pretrained</code> 加载本地模型。</li>
+              <li>返回 OpenAI 风格简化响应：<code>{ text, language, duration_ms }</code>。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>本地 LLM：Qwen3.5-4B</h3>
+            <ul class="feature-list">
+              <li>浏览器调用 <code>/api/llm/qwen35-local/v1/chat/completions</code>。</li>
+              <li>Vite middleware 将请求 JSON 写入临时文件。</li>
+              <li>Python 脚本使用 vLLM 加载 <code>Qwen3.5-4B</code>。</li>
+              <li>默认注入 no-thinking system instruction。</li>
+              <li>返回 OpenAI-compatible <code>chat.completion</code> 响应。</li>
+            </ul>
+          </div>
+        </div>
+
+        <pre><code>// 本地 LLM 端点
+POST /api/llm/qwen35-local/v1/chat/completions
+{
+  "model": "Qwen3.5-4B",
+  "messages": [
+    { "role": "system", "content": "..." },
+    { "role": "user", "content": "..." }
+  ],
+  "temperature": 0.2
+}</code></pre>
+      </section>
+
+      <section>
+        <h2>9. 用户界面结构</h2>
+        <div class="diagram">
+          <svg viewBox="0 0 1080 580" aria-label="UI layout mock" role="img">
+            <rect width="1080" height="580" rx="10" fill="#eef4f9"/>
+            <rect x="34" y="30" width="1012" height="62" rx="12" fill="#ffffff" stroke="#d9e2ec"/>
+            <circle cx="70" cy="61" r="17" fill="#2563eb"/>
+            <text x="98" y="58" font-size="18" font-weight="800" fill="#172033">Typeless</text>
+            <text x="98" y="77" font-size="12" fill="#64748b">AI voice input · rewrite · translate</text>
+            <rect x="375" y="45" width="250" height="32" rx="8" fill="#eff6ff" stroke="#bfdbfe"/>
+            <text x="500" y="66" text-anchor="middle" font-size="13" font-weight="700" fill="#1d4ed8">Dictate / Rewrite / Translate</text>
+            <rect x="36" y="118" width="670" height="416" rx="12" fill="#ffffff" stroke="#d9e2ec"/>
+            <rect x="58" y="142" width="628" height="42" rx="8" fill="#f8fafc"/>
+            <text x="76" y="168" font-size="13" font-weight="800" fill="#334155">最终输出 · 模拟目标应用</text>
+            <rect x="58" y="202" width="628" height="180" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+            <text x="80" y="236" font-size="15" fill="#475569">用户文本输入区 / 最终输出区 / 可框选改写</text>
+            <rect x="80" y="260" width="420" height="12" rx="6" fill="#cbd5e1"/>
+            <rect x="80" y="288" width="330" height="12" rx="6" fill="#dbeafe"/>
+            <rect x="58" y="394" width="628" height="40" rx="8" fill="#ecfeff" stroke="#bae6fd"/>
+            <text x="76" y="419" font-size="13" font-weight="800" fill="#0e7490">已选中 X 字 · AI 改写选区</text>
+            <rect x="58" y="452" width="628" height="58" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+            <text x="76" y="486" font-size="13" fill="#475569">RAW ASR → POLISH / REWRITE / TRANSLATION → FINAL INPUT</text>
+            <rect x="734" y="118" width="310" height="416" rx="12" fill="#ffffff" stroke="#d9e2ec"/>
+            <rect x="758" y="142" width="262" height="92" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+            <text x="778" y="169" font-size="13" font-weight="800" fill="#334155">当前状态 / 模型信息</text>
+            <text x="778" y="196" font-size="12" fill="#64748b">ASR: Qwen3-ASR-1.7B Local</text>
+            <text x="778" y="216" font-size="12" fill="#64748b">LLM: Qwen3.5-4B Local</text>
+            <rect x="758" y="254" width="262" height="82" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+            <text x="778" y="284" font-size="13" font-weight="800" fill="#334155">用户词典</text>
+            <rect x="758" y="356" width="262" height="82" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+            <text x="778" y="386" font-size="13" font-weight="800" fill="#334155">历史会话</text>
+            <rect x="758" y="458" width="262" height="52" rx="8" fill="#f8fafc" stroke="#e2e8f0"/>
+            <text x="778" y="490" font-size="13" font-weight="800" fill="#334155">模型管理 / 文档</text>
+          </svg>
+          <p class="caption">图 3：当前页面布局：左侧是主要输入与处理过程，右侧是状态、模型、词典、历史和交付文档。</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>10. 状态、存储与错误处理</h2>
+        <div class="grid three">
+          <div class="card">
+            <h3>XState</h3>
+            <p>维护主流程状态：热键按下、ASR 完成、LLM 完成、注入完成、失败状态。状态卡直接显示当前状态或错误信息。</p>
+          </div>
+          <div class="card">
+            <h3>Zustand Persist</h3>
+            <p>保存 app context、模式、target language、endpoint、API key、词典、暗色模式、离线模式等配置。</p>
+          </div>
+          <div class="card">
+            <h3>localforage</h3>
+            <p>历史记录保存在 IndexedDB/localStorage 兼容层中。当前限制 200 条，支持回放和删除。</p>
+          </div>
+        </div>
+        <div class="callout" style="margin-top:16px">
+          <strong>错误反馈：</strong>
+          <p>ASR、LLM、本地模型脚本、代理请求失败都会进入 toast 和状态机错误上下文。页面不会静默失败，用户能看到具体错误信息。</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>11. 测试与质量状态</h2>
+        <div class="grid three">
+          <div class="card soft">
+            <strong class="metric">16</strong>
+            <p>测试文件通过，覆盖 hooks、components、prompt、endpoints、ASR、状态机、文本替换。</p>
+          </div>
+          <div class="card soft">
+            <strong class="metric">27</strong>
+            <p>测试用例通过。近期新增右 Alt 热键、选区稳定入口、本地模型配置等测试。</p>
+          </div>
+          <div class="card soft">
+            <strong class="metric">Build OK</strong>
+            <p><code>pnpm build</code> 完成 TypeScript 构建和 Vite 生产构建。</p>
+          </div>
+        </div>
+        <pre><code>pnpm test
+# 16 files / 27 tests passed
+
+pnpm build
+# tsc -b && vite build passed</code></pre>
+      </section>
+
+      <section>
+        <h2>12. 当前启动与验收方式</h2>
+        <div class="grid two">
+          <div class="card">
+            <h3>启动命令</h3>
+            <pre><code>cd /home/mingzh/Documents/Workplace/typeless_reproduce
+pnpm dev --host 0.0.0.0</code></pre>
+            <p style="margin-top:10px">远程浏览器访问：<code>https://10.110.232.76:5173/</code></p>
+          </div>
+          <div class="card">
+            <h3>手工验收重点</h3>
+            <ul class="dense-list">
+              <li>打开页面后接受自签名 HTTPS 证书。</li>
+              <li>授予麦克风权限。</li>
+              <li>按住左 Alt 说话，松开后检查 RAW ASR、Preview、Final Input 是否更新。</li>
+              <li>切换 Email、Slack、WeChat、Code、Notes、Casual，验证输出风格差异。</li>
+              <li>框选最终输入区文字，点击“按语音指令改写”，长按右 Alt 说改写要求。</li>
+              <li>检查历史会话可回放、可删除。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>13. 已知成本与后续建议</h2>
+        <div class="grid two">
+          <div class="card">
+            <h3>当前成本</h3>
+            <ul class="feature-list">
+              <li>Qwen3.5-4B 本地 LLM 冷启动较慢，首次调用可能需要几十秒到一两分钟。</li>
+              <li>Vite dev middleware 每次请求 spawn Python，适合 demo 验证，不适合生产并发。</li>
+              <li>本地模型依赖 `.qwen` 环境、vLLM、qwen-asr、ffmpeg 和 CUDA 可用性。</li>
+              <li>远程访问需要 HTTPS，自签证书需要用户手动允许。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>建议演进</h3>
+            <ul class="feature-list">
+              <li>将本地 ASR/LLM 从 Vite middleware 独立为常驻 FastAPI 服务，避免重复加载模型。</li>
+              <li>为本地 LLM 增加加载状态、排队状态和超时重试提示。</li>
+              <li>为框选改写增加端到端浏览器测试，覆盖远程键盘事件与 textarea 选择。</li>
+              <li>支持按 endpoint 显示最近一次调用耗时、错误码和模型响应摘要。</li>
+              <li>将 API key 和模型路径迁移到 `.env.local`，减少硬编码路径。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer">
+        <p>生成位置：<code>docs/typeless-project-report.html</code></p>
+        <p>报告覆盖当前仓库功能状态、技术实现与最近完成的本地模型、右 Alt 语音指令改写、选区编辑稳定性等工作。</p>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
