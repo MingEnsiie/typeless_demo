@@ -19,6 +19,7 @@ def main() -> int:
     messages = request.get("messages") or []
     if not messages:
         raise ValueError("messages is required")
+    messages = force_non_thinking(messages)
 
     started = time.time()
     llm = LLM(
@@ -54,9 +55,13 @@ def main() -> int:
 
 
 def strip_thinking(text: str) -> str:
-    stripped = re.sub(r"(?s)<think>.*?</think>", "", text)
+    stripped = re.sub(r"(?is)<think>.*?</think>", "", text)
     if stripped != text:
         return stripped
+    if re.search(r"(?i)^\\s*(thinking process|reasoning|analysis)\\s*:", text):
+        tail = re.split(r"(?i)(final output generation|final response|final answer|answer)\\s*:", text, maxsplit=1)
+        if len(tail) >= 3 and tail[-1].strip():
+            return tail[-1].strip()
     marker = "\n</think>\n"
     if marker in text:
         return text.split(marker, 1)[1]
@@ -81,6 +86,17 @@ def strip_thinking(text: str) -> str:
         if non_reasoning:
             return non_reasoning[-1]
     return text
+
+
+def force_non_thinking(messages: list[dict]) -> list[dict]:
+    instruction = (
+        "Disable thinking mode for this request. Do not output chain-of-thought, "
+        "reasoning steps, analysis, or any text inside <think> tags. Return only "
+        "the final user-visible answer required by the system prompt."
+    )
+    if messages and messages[0].get("role") == "system":
+        return [{**messages[0], "content": f"{instruction}\n\n{messages[0].get('content', '')}"}, *messages[1:]]
+    return [{"role": "system", "content": instruction}, *messages]
 
 
 if __name__ == "__main__":
