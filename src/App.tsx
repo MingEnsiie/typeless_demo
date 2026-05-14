@@ -49,7 +49,7 @@ export default function App() {
   const transcribe = useAsr();
   const llm = useLlm();
   const inject = useInject();
-  const selection = useTextareaSelection(textareaRef);
+  const { selection, updateSelection, clearSelection } = useTextareaSelection(textareaRef);
 
   const rule = useMemo(() => getAppRule(config.appContext), [config.appContext]);
   const llmEndpoint = useMemo(() => findEndpoint(config.endpoints, config.llmEndpointId), [config.endpoints, config.llmEndpointId]);
@@ -196,13 +196,15 @@ export default function App() {
             value={draft}
             rule={rule}
             streamingSelection={rewriting}
+            selection={selection}
             onChange={setDraft}
+            onSelect={updateSelection}
           />
           <SelectionPopover
             selection={selection}
             onPreset={rewriteSelection}
             onCustom={() => rewriteSelection('Make this clearer and more specific.')}
-            onClose={() => textareaRef.current?.setSelectionRange(0, 0)}
+            onClose={clearSelection}
           />
           <ResultPanel
             mode={config.mode}

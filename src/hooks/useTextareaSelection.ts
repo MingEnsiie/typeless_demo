@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState, type RefObject } from 'react';
 import type { SelectionSnapshot } from '@/types';
 
-export function useTextareaSelection(ref: RefObject<HTMLTextAreaElement | null>): SelectionSnapshot | null {
+export function useTextareaSelection(ref: RefObject<HTMLTextAreaElement | null>) {
   const [selection, setSelection] = useState<SelectionSnapshot | null>(null);
 
-  const update = useCallback(() => {
+  const updateSelection = useCallback(() => {
     const el = ref.current;
     if (!el) return;
     const { selectionStart, selectionEnd, value } = el;
@@ -20,22 +20,34 @@ export function useTextareaSelection(ref: RefObject<HTMLTextAreaElement | null>)
     });
   }, [ref]);
 
+  const clearSelection = useCallback(() => {
+    const el = ref.current;
+    if (el) el.setSelectionRange(0, 0);
+    setSelection(null);
+  }, [ref]);
+
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
-    el.addEventListener('select', update);
-    el.addEventListener('keyup', update);
-    el.addEventListener('mouseup', update);
-    el.addEventListener('input', update);
+    el.addEventListener('select', updateSelection);
+    el.addEventListener('keyup', updateSelection);
+    el.addEventListener('mouseup', updateSelection);
+    el.addEventListener('pointerup', updateSelection);
+    el.addEventListener('touchend', updateSelection);
+    el.addEventListener('input', updateSelection);
+    document.addEventListener('selectionchange', updateSelection);
     return () => {
-      el.removeEventListener('select', update);
-      el.removeEventListener('keyup', update);
-      el.removeEventListener('mouseup', update);
-      el.removeEventListener('input', update);
+      el.removeEventListener('select', updateSelection);
+      el.removeEventListener('keyup', updateSelection);
+      el.removeEventListener('mouseup', updateSelection);
+      el.removeEventListener('pointerup', updateSelection);
+      el.removeEventListener('touchend', updateSelection);
+      el.removeEventListener('input', updateSelection);
+      document.removeEventListener('selectionchange', updateSelection);
     };
-  }, [ref, update]);
+  }, [ref, updateSelection]);
 
-  return selection;
+  return { selection, updateSelection, clearSelection };
 }
 
 function caretRectInTextarea(el: HTMLTextAreaElement): DOMRect | null {
