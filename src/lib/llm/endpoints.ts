@@ -34,7 +34,7 @@ export const DEFAULT_ENDPOINTS: EndpointConfig[] = [
     id: 'qwen3-asr-local',
     label: 'Qwen3-ASR-1.7B Local',
     kind: 'asr',
-    baseUrl: 'local://qwen3-asr',
+    baseUrl: '/api/asr/qwen3-local/v1',
     model: 'Qwen3-ASR-1.7B',
     modelOptions: ['Qwen3-ASR-1.7B'],
     localPath: '/home/mingzh/Documents/Workplace/QwenAsset/model/Qwen3-ASR-1.7B',

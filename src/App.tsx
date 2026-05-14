@@ -3,6 +3,7 @@ import { createActor } from 'xstate';
 import { toast } from 'sonner';
 import { Github, Radio, Sparkles } from 'lucide-react';
 import { AppContextSwitcher } from '@/components/AppContextSwitcher';
+import { CurrentModelInfo } from '@/components/CurrentModelInfo';
 import { DemoSurface } from '@/components/DemoSurface';
 import { DictionaryEditor } from '@/components/DictionaryEditor';
 import { HistoryList } from '@/components/HistoryList';
@@ -222,6 +223,7 @@ export default function App() {
             <span>当前状态</span>
             <strong>{stateLabel}</strong>
             <p>{snapshot.context.error ?? `${asrEndpoint.label} → ${llmEndpoint.label}`}</p>
+            <CurrentModelInfo asrEndpoint={asrEndpoint} llmEndpoint={llmEndpoint} offlineMode={config.offlineMode} />
             <button onClick={() => void runRecording(config.mode)}>
               <Sparkles size={15} /> 开始录音
             </button>

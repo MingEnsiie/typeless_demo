@@ -9,7 +9,7 @@ export async function transcribeCloud(audio: Blob, opts: AsrOptions): Promise<Tr
       provider: 'demo',
     };
   }
-  if (!opts.apiKey) {
+  if (!opts.apiKey && opts.provider !== 'qwen3-local') {
     throw new Error(`请先在模型与 API 设置里填写 ${providerLabel(opts.provider)} 的 ASR API key`);
   }
 
@@ -20,7 +20,7 @@ export async function transcribeCloud(audio: Blob, opts: AsrOptions): Promise<Tr
 
   const response = await fetch(providerPath(opts.provider), {
     method: 'POST',
-    headers: { Authorization: `Bearer ${opts.apiKey}` },
+    headers: opts.apiKey ? { Authorization: `Bearer ${opts.apiKey}` } : undefined,
     body: form,
   });
 
@@ -40,6 +40,7 @@ function providerLabel(provider: AsrOptions['provider']): string {
   if (provider === 'groq') return 'Groq Whisper Turbo';
   if (provider === 'openai') return 'OpenAI Whisper';
   if (provider === 'siliconflow') return 'SiliconFlow ASR';
+  if (provider === 'qwen3-local') return 'Qwen3-ASR-1.7B Local';
   return '当前 ASR 服务';
 }
 
@@ -55,6 +56,7 @@ function providerPath(provider: AsrOptions['provider']): string {
   if (provider === 'groq') return '/api/asr/groq/v1/audio/transcriptions';
   if (provider === 'openai') return '/api/asr/openai/v1/audio/transcriptions';
   if (provider === 'siliconflow') return '/api/asr/siliconflow/v1/audio/transcriptions';
+  if (provider === 'qwen3-local') return '/api/asr/qwen3-local/v1/audio/transcriptions';
   return '/api/asr/groq/v1/audio/transcriptions';
 }
 

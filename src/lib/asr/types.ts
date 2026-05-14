@@ -1,5 +1,5 @@
 export interface AsrOptions {
-  provider: 'demo' | 'groq' | 'openai' | 'siliconflow' | 'aliyun' | 'local';
+  provider: 'demo' | 'groq' | 'openai' | 'siliconflow' | 'aliyun' | 'local' | 'qwen3-local';
   apiKey?: string;
   model: string;
   language?: string;

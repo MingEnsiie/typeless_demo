@@ -21,6 +21,7 @@ describe('default endpoints', () => {
     const qwenAsr = DEFAULT_ENDPOINTS.find((endpoint) => endpoint.id === 'qwen3-asr-local');
 
     expect(qwenAsr?.kind).toBe('asr');
+    expect(qwenAsr?.baseUrl).toBe('/api/asr/qwen3-local/v1');
     expect(qwenAsr?.model).toBe('Qwen3-ASR-1.7B');
     expect(qwenAsr?.localPath).toBe('/home/mingzh/Documents/Workplace/QwenAsset/model/Qwen3-ASR-1.7B');
   });

@@ -236,6 +236,47 @@ kbd {
 .status-card span { color: var(--muted); font-size: 12px; }
 .status-card strong { font-size: 28px; color: var(--accent); }
 .status-card p { margin: 0 0 4px; color: var(--muted); font-size: 13px; }
+.model-call-info {
+  display: grid;
+  gap: 8px;
+  margin: 2px 0 4px;
+}
+.model-call-info div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 9px;
+}
+.model-call-info span,
+.model-call-info small,
+.model-call-info em {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.model-call-info span {
+  color: var(--faint);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.model-call-info strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--text);
+  font-size: 13px;
+}
+.model-call-info small {
+  margin-top: 2px;
+  color: var(--accent);
+  font-size: 12px;
+}
+.model-call-info em {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+}
 .dictionary-form { display: grid; grid-template-columns: 1fr 1fr 42px; gap: 8px; padding: 12px; }
 .dictionary-form input { min-width: 0; padding: 8px; }
 .term-list, .history-list, .model-list { padding: 12px; display: grid; gap: 8px; }
