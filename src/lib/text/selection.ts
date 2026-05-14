@@ -11,3 +11,8 @@ export function replaceRange(value: string, start: number, end: number, replacem
   const caret = safeStart + replacement.length;
   return { value: next, selectionStart: caret, selectionEnd: caret };
 }
+
+export function appendFinalOutput(value: string, output: string): string {
+  const spacer = value && !value.endsWith('\n') ? '\n\n' : '';
+  return `${value}${spacer}${output}`;
+}

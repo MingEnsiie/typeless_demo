@@ -26,6 +26,7 @@ import { getAppRule } from '@/lib/llm/prompts/app-rules';
 import type { RewritePreset } from '@/lib/llm/prompts/rewrite.v1';
 import { useConfigStore } from '@/lib/storage/config';
 import { loadHistory, saveHistory } from '@/lib/storage/history';
+import { appendFinalOutput, replaceRange } from '@/lib/text/selection';
 import { typelessMachine } from '@/machine/typeless.machine';
 import type { HistoryItem, TypelessMode } from '@/types';
 
@@ -93,7 +94,8 @@ export default function App() {
   const commitFinal = async (mode: TypelessMode, inputRaw: string, output: string) => {
     setFinalText(output);
     actor.send({ type: 'LLM_DONE', final: output });
-    await inject.append(textareaRef.current, output);
+    setDraft((current) => appendFinalOutput(current, output));
+    await inject.copy(output);
     actor.send({ type: 'INJECT_DONE' });
     const item = await saveHistory({
       id: crypto.randomUUID(),
@@ -122,7 +124,8 @@ export default function App() {
           : await llm.rewrite(selection.text, preset, config.targetLang, rule, config.dictionary, llmEndpoint, setStreaming);
       setFinalText(output);
       actor.send({ type: 'LLM_DONE', final: output });
-      await inject.replaceSelection(textareaRef.current, output, selection.start, selection.end);
+      setDraft((current) => replaceRange(current, selection.start, selection.end, output).value);
+      await inject.copy(output);
       actor.send({ type: 'INJECT_DONE' });
       const item = await saveHistory({
         id: crypto.randomUUID(),
