@@ -71,7 +71,7 @@ export const useConfigStore = create<ConfigState>()(
     (set) => ({
       appContext: 'email',
       mode: 'dictate',
-      hotkey: 'Space',
+      hotkey: 'AltLeft',
       holdToTalk: true,
       offlineMode: false,
       darkMode: false,

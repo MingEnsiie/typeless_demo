@@ -15,7 +15,7 @@ export function useHotkey({ disabled, mode, onDown, onUp, onTranslate }: HotkeyO
     const down = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
-      if (event.code === 'Space' && !event.repeat && !isTyping) {
+      if (event.code === 'AltLeft' && !event.repeat && !isTyping) {
         event.preventDefault();
         onDown(mode);
       }
@@ -25,7 +25,7 @@ export function useHotkey({ disabled, mode, onDown, onUp, onTranslate }: HotkeyO
       }
     };
     const up = (event: KeyboardEvent) => {
-      if (event.code === 'Space') {
+      if (event.code === 'AltLeft') {
         event.preventDefault();
         onUp();
       }

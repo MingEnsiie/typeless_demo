@@ -11,7 +11,7 @@ export function Onboarding({ open, onClose }: { open: boolean; onClose: () => vo
       <div>
         <article>
           <Mic size={20} />
-          <strong>按住 Space</strong>
+          <strong>按住左 Alt</strong>
           <span>说一段口语，松开后自动转写并润色。</span>
         </article>
         <article>

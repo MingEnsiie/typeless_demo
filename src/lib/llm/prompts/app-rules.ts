@@ -7,7 +7,7 @@ export const APP_RULES: AppRule[] = [
     tone: 'professional email',
     formality: 'formal',
     markdown: false,
-    placeholder: 'Hi team,\n\nSelect text here, rewrite it, or hold Space to dictate...',
+    placeholder: 'Hi team,\n\nSelect text here, rewrite it, or hold left Alt to dictate...',
   },
   {
     id: 'slack',

@@ -4,7 +4,7 @@ The app is a single Vite + React SPA. Browser APIs handle hotkeys, microphone st
 
 Core paths:
 
-- Dictation: Space -> recorder -> ASR provider -> polish prompt -> append to textarea and clipboard.
+- Dictation: left Alt -> recorder -> ASR provider -> polish prompt -> append to textarea and clipboard.
 - Selection rewrite: textarea selection -> floating popover -> rewrite or translate prompt -> replace selected range.
 - Translation: translate mode or Cmd/Ctrl+Shift+T -> ASR provider -> translate prompt -> translated result panel and textarea.
 
