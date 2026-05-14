@@ -1,0 +1,40 @@
+import { useEffect } from 'react';
+import type { TypelessMode } from '@/types';
+
+interface HotkeyOptions {
+  disabled?: boolean;
+  mode: TypelessMode;
+  onDown: (mode: TypelessMode) => void;
+  onUp: () => void;
+  onTranslate: () => void;
+}
+
+export function useHotkey({ disabled, mode, onDown, onUp, onTranslate }: HotkeyOptions) {
+  useEffect(() => {
+    if (disabled) return undefined;
+    const down = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+      if (event.code === 'Space' && !event.repeat && !isTyping) {
+        event.preventDefault();
+        onDown(mode);
+      }
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 't') {
+        event.preventDefault();
+        onTranslate();
+      }
+    };
+    const up = (event: KeyboardEvent) => {
+      if (event.code === 'Space') {
+        event.preventDefault();
+        onUp();
+      }
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, [disabled, mode, onDown, onTranslate, onUp]);
+}

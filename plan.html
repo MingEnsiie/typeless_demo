@@ -1,0 +1,1987 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Typeless 复刻 · 实施计划</title>
+<meta name="description" content="100% 复刻 typeless.com AI 语音输入法的单网页 demo 实施计划：架构、流程、TODO 与一键启动命令。" />
+<style>
+  :root {
+    --bg: #f4f8ff;
+    --bg-soft: #eaf1fc;
+    --bg-card: #ffffff;
+    --bg-elev: #f8faff;
+    --bd: #d6e2f3;
+    --bd-strong: #a6bfde;
+    --tx: #0f1e3a;
+    --tx-sec: #4a5b7a;
+    --tx-mut: #8694ac;
+    --accent: #1d4ed8;
+    --accent-2: #06b6d4;
+    --accent-3: #3b82f6;
+    --accent-soft: #dbeafe;
+    --accent-glow: rgba(29, 78, 216, 0.16);
+    --cyan-glow: rgba(6, 182, 212, 0.18);
+    --ok: #059669;
+    --warn: #d97706;
+    --err: #dc2626;
+    --code-bg: #0b1426;
+    --code-tx: #d8def0;
+    --r: 12px;
+    --r-sm: 6px;
+    --grad: linear-gradient(135deg, #1d4ed8 0%, #06b6d4 100%);
+    --grad-soft: linear-gradient(135deg, rgba(29,78,216,0.08) 0%, rgba(6,182,212,0.08) 100%);
+    --shadow-sm: 0 1px 0 rgba(13,30,69,0.04) inset, 0 4px 14px rgba(29,78,216,0.05);
+    --shadow: 0 1px 0 rgba(13,30,69,0.04) inset, 0 10px 28px rgba(29,78,216,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body { background: var(--bg); color: var(--tx); }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      linear-gradient(rgba(29,78,216,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(29,78,216,0.04) 1px, transparent 1px),
+      radial-gradient(900px 600px at 80% -10%, var(--cyan-glow), transparent 60%),
+      radial-gradient(900px 600px at -10% 30%, var(--accent-glow), transparent 60%);
+    background-size: 28px 28px, 28px 28px, 100% 100%, 100% 100%;
+    background-attachment: fixed;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { color: var(--accent-2); text-decoration: underline; }
+  code, pre, .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  code {
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(29,78,216,0.12);
+    font-size: 12.5px;
+  }
+  pre { margin: 0; }
+
+  /* ===== Layout ===== */
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+  .grid { display: grid; grid-template-columns: 240px 1fr; gap: 48px; align-items: start; }
+
+  /* ===== Hero ===== */
+  .hero {
+    padding: 96px 0 64px;
+    border-bottom: 1px solid var(--bd);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(500px 200px at 50% 0%, rgba(29,78,216,0.12), transparent 70%),
+      radial-gradient(400px 200px at 80% 100%, rgba(6,182,212,0.10), transparent 70%);
+    pointer-events: none;
+  }
+  .hero::after {
+    content: "";
+    position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-2), transparent);
+    opacity: 0.6;
+  }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; position: relative; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px;
+    background: var(--bg-card); border: 1px solid var(--bd);
+    font-size: 12px; color: var(--tx-sec); letter-spacing: 0.02em;
+    box-shadow: var(--shadow-sm);
+  }
+  .badge.accent {
+    background: linear-gradient(135deg, rgba(29,78,216,0.10), rgba(6,182,212,0.10));
+    border-color: rgba(29,78,216,0.35); color: var(--accent);
+  }
+  .badge.ok { color: #047857; border-color: #a7f3d0; background: #ecfdf5; }
+  .badge.warn { color: #b45309; border-color: #fcd34d; background: #fffbeb; }
+  .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  h1.title {
+    font-size: 60px; line-height: 1.05; letter-spacing: -0.02em;
+    margin: 0 0 18px;
+    background: linear-gradient(135deg, #0f1e3a 0%, #1d4ed8 55%, #06b6d4 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-weight: 800;
+    position: relative;
+  }
+  .subtitle { font-size: 19px; color: var(--tx-sec); max-width: 780px; margin: 0 0 32px; position: relative; }
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; position: relative; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 8px; cursor: pointer;
+    font-weight: 500; font-size: 14px;
+    border: 1px solid var(--bd); background: var(--bg-card); color: var(--tx);
+    transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease, background .12s ease;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn:hover { transform: translateY(-1px); border-color: var(--accent); color: var(--accent); }
+  .btn.primary { background: var(--grad); border-color: transparent; box-shadow: 0 6px 20px var(--accent-glow); color: white; }
+  .btn.primary:hover { color: white; box-shadow: 0 10px 28px var(--accent-glow); }
+
+  /* ===== Stats strip ===== */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 40px 0 0; position: relative; }
+  .stat {
+    background: var(--bg-card); border: 1px solid var(--bd); border-radius: var(--r);
+    padding: 18px 20px; position: relative; overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  .stat::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--grad);
+  }
+  .stat .k {
+    font-size: 30px; font-weight: 800;
+    background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent;
+    letter-spacing: -0.01em;
+  }
+  .stat .v { font-size: 12.5px; color: var(--tx-mut); margin-top: 2px; }
+
+  /* ===== Sidebar TOC ===== */
+  aside.toc {
+    position: sticky; top: 24px;
+    padding: 22px 18px;
+    background: var(--bg-card); border: 1px solid var(--bd); border-radius: var(--r);
+    font-size: 13px;
+    box-shadow: var(--shadow-sm);
+  }
+  aside.toc h4 { margin: 0 0 12px; font-size: 11px; letter-spacing: 0.12em; color: var(--tx-mut); text-transform: uppercase; }
+  aside.toc ol { list-style: none; padding: 0; margin: 0; counter-reset: toc; }
+  aside.toc li { counter-increment: toc; margin: 2px 0; }
+  aside.toc a {
+    display: block; color: var(--tx-sec); padding: 6px 8px; border-radius: 6px;
+    border-left: 2px solid transparent; transition: all .15s ease;
+  }
+  aside.toc a::before { content: counter(toc, decimal-leading-zero) "  "; color: var(--tx-mut); font-family: "JetBrains Mono", monospace; font-size: 11px; }
+  aside.toc a:hover { background: var(--accent-soft); color: var(--accent); text-decoration: none; }
+  aside.toc a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); font-weight: 500; }
+
+  /* ===== Main content ===== */
+  main { min-width: 0; padding: 56px 0 120px; }
+  section { margin-bottom: 88px; scroll-margin-top: 24px; }
+  section > h2 {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--tx-mut);
+    margin: 0 0 6px; font-weight: 600;
+  }
+  section > h2 .num {
+    color: var(--accent); margin-right: 10px; font-family: "JetBrains Mono", monospace;
+    background: var(--accent-soft); padding: 2px 8px; border-radius: 4px; font-size: 11px;
+  }
+  section > h3.title {
+    font-size: 36px; font-weight: 700; letter-spacing: -0.01em;
+    margin: 0 0 14px; line-height: 1.2; color: var(--tx);
+  }
+  section > p.lead { font-size: 16px; color: var(--tx-sec); margin: 0 0 24px; }
+
+  h4 { font-size: 17px; font-weight: 600; margin: 32px 0 12px; color: var(--tx); }
+  h5 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; color: var(--tx); }
+
+  /* ===== Cards ===== */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--bd); border-radius: var(--r);
+    padding: 20px; margin: 16px 0; box-shadow: var(--shadow-sm);
+  }
+  .card.accent {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-soft), 0 12px 32px rgba(29,78,216,0.12);
+  }
+  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+  .card-title { font-size: 15px; font-weight: 600; margin: 0; color: var(--tx); }
+  .grid-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+
+  /* ===== Code blocks ===== */
+  .code-block {
+    position: relative; background: var(--code-bg); border-radius: var(--r-sm);
+    overflow: hidden; margin: 14px 0;
+    border: 1px solid #1a2545;
+    box-shadow: 0 4px 14px rgba(11,20,38,0.18);
+  }
+  .code-block .head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 14px; background: #131e3a;
+    border-bottom: 1px solid #1f2c52; font-size: 12px;
+    color: #94a3b8;
+  }
+  .code-block .head .tag { font-family: "JetBrains Mono", monospace; }
+  .code-block pre { padding: 14px 18px; overflow-x: auto; max-height: 520px; }
+  .code-block pre code { background: transparent; border: 0; padding: 0; color: var(--code-tx); }
+  .copy-btn {
+    background: transparent; border: 1px solid #2a3a66; color: #94a3b8;
+    padding: 3px 10px; border-radius: 4px; cursor: pointer;
+    font-size: 11px; font-family: inherit;
+    transition: all .12s ease;
+  }
+  .copy-btn:hover { color: #06b6d4; border-color: #06b6d4; }
+  .copy-btn.ok { color: #34d399; border-color: #34d399; }
+
+  /* tiny syntax tint */
+  .tok-c { color: #6b7290; font-style: italic; }
+  .tok-k { color: #c084fc; }
+  .tok-s { color: #93d3a8; }
+  .tok-f { color: #82b4ff; }
+  .tok-t { color: #f7c873; }
+  .tok-n { color: #f8b4b4; }
+
+  /* ===== Tables ===== */
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+    background: var(--bg-card); border-radius: var(--r); overflow: hidden;
+    border: 1px solid var(--bd);
+  }
+  th, td { padding: 11px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--bd); font-size: 13.5px; }
+  th { color: var(--tx-mut); font-weight: 500; letter-spacing: 0.04em; background: var(--bg-elev); font-size: 11.5px; text-transform: uppercase; }
+  tr:hover td { background: rgba(29,78,216,0.025); }
+  tr:last-child td { border-bottom: 0; }
+
+  /* ===== Tags ===== */
+  .tag-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; background: var(--bg-elev); border: 1px solid var(--bd); color: var(--tx-sec); }
+  .tag.p0 { color: #b91c1c; border-color: #fca5a5; background: #fef2f2; }
+  .tag.p1 { color: #b45309; border-color: #fcd34d; background: #fffbeb; }
+  .tag.p2 { color: #4338ca; border-color: #a5b4fc; background: #eef2ff; }
+  .tag.new { color: #047857; border-color: #6ee7b7; background: #ecfdf5; font-weight: 600; }
+  .tag.size { color: var(--tx-mut); }
+
+  /* ===== Checklist ===== */
+  ul.todo { list-style: none; padding: 0; margin: 8px 0 16px; }
+  ul.todo li {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 14px; margin: 5px 0;
+    background: var(--bg-card); border: 1px solid var(--bd); border-radius: var(--r-sm);
+    transition: all .15s ease;
+  }
+  ul.todo li:hover { border-color: var(--accent); box-shadow: 0 2px 8px var(--accent-glow); }
+  ul.todo input[type="checkbox"] {
+    margin-top: 4px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+  }
+  ul.todo li.done { opacity: 0.6; background: var(--bg-elev); }
+  ul.todo li.done .todo-body { text-decoration: line-through; color: var(--tx-mut); }
+  .todo-body { flex: 1; font-size: 13.5px; color: var(--tx-sec); }
+  .todo-body b { color: var(--tx); }
+  .todo-body code { font-size: 12px; }
+  .todo-meta { display: flex; gap: 6px; flex-shrink: 0; margin-top: 2px; }
+
+  /* ===== Phase header ===== */
+  .phase {
+    margin: 24px 0;
+    background: var(--bg-card); border: 1px solid var(--bd); border-radius: var(--r);
+    overflow: hidden; box-shadow: var(--shadow-sm);
+  }
+  .phase-head {
+    padding: 18px 22px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(90deg, rgba(29,78,216,0.05) 0%, transparent 60%);
+    border-bottom: 1px solid var(--bd);
+    cursor: pointer;
+  }
+  .phase-head h4 { margin: 0; font-size: 18px; }
+  .phase-head .meta { color: var(--tx-mut); font-size: 12px; font-family: "JetBrains Mono", monospace; }
+  .phase-body { padding: 12px 22px 22px; }
+  .progress-track { height: 4px; background: var(--accent-soft); border-radius: 99px; margin: 8px 0 0; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--grad); transition: width .3s ease; width: 0; }
+
+  /* ===== Diagrams ===== */
+  .diagram {
+    background: var(--bg-card); border: 1px solid var(--bd); border-radius: var(--r);
+    padding: 24px; margin: 16px 0; overflow-x: auto;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .diagram::before {
+    content: ""; position: absolute; left: 0; top: 0; right: 0; height: 2px;
+    background: var(--grad); opacity: 0.5;
+  }
+  .diagram svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+  .diagram .caption { color: var(--tx-mut); text-align: center; font-size: 12px; margin-top: 12px; }
+
+  /* tree */
+  .tree {
+    font-family: "JetBrains Mono", monospace; font-size: 12.5px; line-height: 1.85;
+    color: var(--tx-sec); white-space: pre;
+    background: var(--bg-elev); padding: 18px; border-radius: var(--r-sm); border: 1px solid var(--bd);
+  }
+  .tree .dir { color: var(--accent); font-weight: 600; }
+  .tree .file { color: var(--tx); }
+  .tree .note { color: var(--tx-mut); font-style: italic; }
+  .tree .new { color: var(--ok); font-weight: 600; }
+
+  /* callouts */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 14px 18px; margin: 16px 0; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+    color: var(--tx-sec); font-size: 14px;
+  }
+  .callout.warn { border-left-color: var(--warn); background: #fffbeb; }
+  .callout.err { border-left-color: var(--err); background: #fef2f2; }
+  .callout.new { border-left-color: var(--ok); background: #ecfdf5; }
+  .callout strong { color: var(--tx); }
+
+  /* feature category */
+  .feat-cat {
+    margin: 18px 0;
+    background: var(--bg-card); border: 1px solid var(--bd); border-radius: var(--r);
+    padding: 18px 22px;
+    box-shadow: var(--shadow-sm);
+    transition: all .15s ease;
+  }
+  .feat-cat:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .feat-cat h5 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 15px; }
+  .feat-cat h5 .letter {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--grad); color: white; font-weight: 700; font-size: 13px;
+    font-family: "JetBrains Mono", monospace;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+  .feat-cat.is-new h5 .letter { background: linear-gradient(135deg, #059669, #06b6d4); box-shadow: 0 4px 12px rgba(5,150,105,0.25); }
+  .feat-cat ul { margin: 0; padding: 0; list-style: none; }
+  .feat-cat li { padding: 5px 0; padding-left: 24px; position: relative; color: var(--tx-sec); font-size: 13.5px; }
+  .feat-cat li::before { content: "›"; position: absolute; left: 6px; color: var(--accent); font-weight: bold; }
+  .feat-cat li b { color: var(--tx); margin-right: 4px; }
+
+  /* hint chip */
+  .chip-new {
+    display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 4px;
+    background: var(--ok); color: white; margin-left: 6px; vertical-align: 2px;
+    font-weight: 600; letter-spacing: 0.05em;
+  }
+
+  /* mini key */
+  .kbd {
+    display: inline-block; padding: 1px 6px; border-radius: 4px;
+    background: var(--bg-card); border: 1px solid var(--bd-strong);
+    box-shadow: 0 1px 0 var(--bd-strong);
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+    color: var(--tx); margin: 0 2px;
+  }
+
+  /* footer */
+  footer { padding: 32px 0; border-top: 1px solid var(--bd); color: var(--tx-mut); text-align: center; font-size: 12px; }
+
+  /* responsive */
+  @media (max-width: 980px) {
+    .grid { grid-template-columns: 1fr; }
+    aside.toc { position: static; }
+    h1.title { font-size: 40px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .wrap { padding: 0 18px; }
+    .hero { padding: 56px 0 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="badge-row">
+      <span class="badge accent"><span class="dot"></span>v0.2 · 实施计划</span>
+      <span class="badge ok"><span class="dot"></span>已审批</span>
+      <span class="badge"><span class="dot"></span>Web Demo · 单文件交付</span>
+      <span class="badge warn"><span class="dot"></span>需 DeepSeek / Groq Key</span>
+      <span class="badge" style="color:var(--ok); border-color:#a7f3d0; background:#ecfdf5;"><span class="dot"></span>新增：框选改写 · 语音翻译</span>
+    </div>
+    <h1 class="title">Typeless 复刻 ·<br/>AI 语音输入法网页 demo</h1>
+    <p class="subtitle">
+      100% 复刻 <a href="https://www.typeless.com" target="_blank">typeless.com</a> 的核心交互：按住热键说话 → 实时 ASR → LLM 润色（去口癖、识别自我纠正、智能排版）→ 自动注入。
+      新版补齐 <strong style="color:var(--tx)">框选改写</strong>（textarea 内浮动菜单 6 个预设动作 + 自定义语音指令）与 <strong style="color:var(--tx)">语音翻译</strong>（独立模式 + 顶部目标语言下拉）两个核心场景。
+    </p>
+    <div class="hero-cta">
+      <button class="btn primary" onclick="document.getElementById('s-first').scrollIntoView({behavior:'smooth'})">⚡ 第一刀命令</button>
+      <button class="btn" onclick="document.getElementById('s-roadmap').scrollIntoView({behavior:'smooth'})">查看 Roadmap</button>
+      <button class="btn" onclick="resetProgress()">↺ 重置进度</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="k">4</div><div class="v">实施 Phase</div></div>
+      <div class="stat"><div class="k">60+</div><div class="v">可勾选 TODO</div></div>
+      <div class="stat"><div class="k">6</div><div class="v">关键流程图</div></div>
+      <div class="stat"><div class="k">~4w</div><div class="v">单人预计工时</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap grid" style="padding-top: 0;">
+  <aside class="toc">
+    <h4>目录</h4>
+    <ol>
+      <li><a href="#s-context">项目背景与边界</a></li>
+      <li><a href="#s-arch">整体架构</a></li>
+      <li><a href="#s-flow">数据流程</a></li>
+      <li><a href="#s-state">核心状态机</a></li>
+      <li><a href="#s-stack">技术栈选型</a></li>
+      <li><a href="#s-repo">仓库结构</a></li>
+      <li><a href="#s-ui">UI 设计</a></li>
+      <li><a href="#s-features">功能清单</a></li>
+      <li><a href="#s-newflows">新增 · 两条新流程</a></li>
+      <li><a href="#s-roadmap">实施路线</a></li>
+      <li><a href="#s-modules">关键模块设计</a></li>
+      <li><a href="#s-prompt">Prompt 设计</a></li>
+      <li><a href="#s-risk">风险与对策</a></li>
+      <li><a href="#s-verify">验证清单</a></li>
+      <li><a href="#s-first">第一刀命令</a></li>
+      <li><a href="#s-ref">参考资源</a></li>
+    </ol>
+  </aside>
+
+  <main>
+
+  <!-- ========== 1. Context ========== -->
+  <section id="s-context">
+    <h2><span class="num">§01</span>项目背景</h2>
+    <h3 class="title">为什么做这个</h3>
+    <p class="lead">
+      Typeless 是一款 AI 语音输入工具，用 LLM 把口语转写"洗"成可发送的书面文本。本项目目标是用单一网页 demo 复刻其交互与体验，所有 UI 与功能跑在浏览器里，<code>pnpm dev</code> 即开即用。
+    </p>
+
+    <div class="grid-cards">
+      <div class="card">
+        <div class="card-header"><h4 class="card-title">🎯 目标</h4></div>
+        <div style="color: var(--tx-sec); font-size: 13.5px;">
+          <p style="margin:0 0 8px;">单 Web SPA · 不需要后端 · 不需要桌面壳。</p>
+          <p style="margin:0;">复刻 typeless 全部核心功能：<strong style="color:var(--tx)">听写 / 润色 / 上下文 / 框选改写 / 语音翻译 / 个性化 / 模型管理</strong>。</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h4 class="card-title">🧠 模型策略</h4></div>
+        <div style="color: var(--tx-sec); font-size: 13.5px;">
+          <p style="margin:0 0 8px;"><b style="color:var(--tx)">ASR</b>：Groq Whisper Turbo 默认 · 浏览器 transformers.js 选配。</p>
+          <p style="margin:0;"><b style="color:var(--tx)">LLM</b>：DeepSeek V4 Flash 默认 · MiMo / Ollama 切换。</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h4 class="card-title">🔐 边界与妥协</h4></div>
+        <div style="color: var(--tx-sec); font-size: 13.5px;">
+          <p style="margin:0 0 8px;">浏览器无法注入到其他应用 → 改为页面内"模拟目标应用"+ 系统剪贴板。</p>
+          <p style="margin:0;">API Key 暴露于 localStorage → UI 显眼提示 demo 用途。</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h4 class="card-title">⚙️ CORS 方案</h4></div>
+        <div style="color: var(--tx-sec); font-size: 13.5px;">
+          <p style="margin:0;">Vite dev server proxy 转发 <code>/api/llm/*</code> 与 <code>/api/asr/*</code>，零后端代码。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout new">
+      <strong>v0.2 变更：</strong> 补两条核心场景 — ① <strong>D 类（框选改写）</strong> 扩展为 textarea 内浮动浮层菜单 + 6 预设动作 + 自定义语音指令。② 新增 <strong>J 类（语音翻译）</strong> 独立模式：专属热键 <span class="kbd">Cmd+Shift+T</span>、顶部目标语言下拉、原文/译文双列展示。视觉重做为浅背景蓝色科技风。
+    </div>
+  </section>
+
+  <!-- ========== 2. Architecture ========== -->
+  <section id="s-arch">
+    <h2><span class="num">§02</span>整体架构</h2>
+    <h3 class="title">浏览器单进程 · Worker 隔离 · Dev Proxy 转发</h3>
+    <p class="lead">主线程跑 React + xstate；VAD 与本地 ASR 跑在 Web Worker 隔离主线程；网络请求统一走 Vite proxy 解决 CORS。</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Architecture topology">
+        <defs>
+          <linearGradient id="grad1" x1="0" x2="1" y1="0" y2="1">
+            <stop offset="0%" stop-color="#1d4ed8"/>
+            <stop offset="100%" stop-color="#06b6d4"/>
+          </linearGradient>
+          <linearGradient id="gradSoft" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="#f8faff"/>
+            <stop offset="100%" stop-color="#eef3fc"/>
+          </linearGradient>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#4a5b7a"/>
+          </marker>
+          <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#1d4ed8"/>
+          </marker>
+        </defs>
+
+        <!-- Browser frame -->
+        <rect x="20" y="20" width="940" height="380" rx="14" fill="none" stroke="#a6bfde" stroke-dasharray="6 4"/>
+        <text x="40" y="44" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="11">BROWSER · localhost:5173</text>
+
+        <!-- Main thread -->
+        <rect x="40" y="64" width="540" height="316" rx="10" fill="url(#gradSoft)" stroke="#d6e2f3"/>
+        <text x="56" y="86" fill="#1d4ed8" font-family="Inter, sans-serif" font-size="13" font-weight="700">React Main Thread</text>
+
+        <!-- UI box -->
+        <rect x="60" y="100" width="240" height="80" rx="8" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="72" y="120" fill="#0f1e3a" font-size="12" font-weight="600">UI Components</text>
+        <text x="72" y="138" fill="#4a5b7a" font-size="10.5">HotkeyHint · Waveform</text>
+        <text x="72" y="152" fill="#4a5b7a" font-size="10.5">DemoSurface · ResultPanel</text>
+        <text x="72" y="166" fill="#059669" font-size="10.5" font-weight="600">+ SelectionPopover · TranslateBar</text>
+
+        <!-- State machine -->
+        <rect x="320" y="100" width="240" height="80" rx="8" fill="#ffffff" stroke="#1d4ed8"/>
+        <text x="332" y="120" fill="#0f1e3a" font-size="12" font-weight="600">xstate · typelessMachine</text>
+        <text x="332" y="138" fill="#1d4ed8" font-size="10.5">idle → recording → transcribing</text>
+        <text x="332" y="152" fill="#1d4ed8" font-size="10.5">→ polishing → injecting → idle</text>
+        <text x="332" y="166" fill="#059669" font-size="10.5" font-weight="600">+ rewriting · translating 分支</text>
+
+        <!-- Hooks -->
+        <rect x="60" y="200" width="240" height="74" rx="8" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="72" y="220" fill="#0f1e3a" font-size="12" font-weight="600">Hooks</text>
+        <text x="72" y="238" fill="#4a5b7a" font-size="10.5">useRecorder · useHotkey · useAsr</text>
+        <text x="72" y="252" fill="#4a5b7a" font-size="10.5">useLlm · useInject</text>
+        <text x="72" y="266" fill="#059669" font-size="10.5" font-weight="600">+ useSelection · useTranslate</text>
+
+        <!-- Storage -->
+        <rect x="320" y="200" width="240" height="74" rx="8" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="332" y="220" fill="#0f1e3a" font-size="12" font-weight="600">Storage (Zustand · localforage)</text>
+        <text x="332" y="238" fill="#4a5b7a" font-size="10.5">config · endpoints · API keys</text>
+        <text x="332" y="252" fill="#4a5b7a" font-size="10.5">history · dictionary · learnings</text>
+        <text x="332" y="266" fill="#059669" font-size="10.5" font-weight="600">+ rewrite presets · target lang</text>
+
+        <!-- Audio capture -->
+        <rect x="60" y="294" width="500" height="70" rx="8" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="72" y="314" fill="#0f1e3a" font-size="12" font-weight="600">Audio · MediaRecorder + AudioWorklet</text>
+        <text x="72" y="332" fill="#4a5b7a" font-size="10.5">getUserMedia 16k mono → Float32Array stream</text>
+        <text x="72" y="346" fill="#4a5b7a" font-size="10.5">AnalyserNode → realtime waveform</text>
+
+        <!-- Workers column -->
+        <rect x="600" y="64" width="340" height="220" rx="10" fill="url(#gradSoft)" stroke="#d6e2f3"/>
+        <text x="616" y="86" fill="#06b6d4" font-family="Inter, sans-serif" font-size="13" font-weight="700">Web Workers</text>
+
+        <rect x="620" y="100" width="300" height="74" rx="8" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="632" y="120" fill="#0f1e3a" font-size="12" font-weight="600">vad.worker.ts</text>
+        <text x="632" y="138" fill="#4a5b7a" font-size="10.5">onnxruntime-web + silero-vad</text>
+        <text x="632" y="152" fill="#4a5b7a" font-size="10.5">30ms chunks · 600ms silence cutoff</text>
+        <text x="632" y="166" fill="#4a5b7a" font-size="10.5">postMessage('vad-end')</text>
+
+        <rect x="620" y="184" width="300" height="90" rx="8" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="632" y="204" fill="#0f1e3a" font-size="12" font-weight="600">asr.worker.ts <tspan fill="#8694ac">(P2 选配)</tspan></text>
+        <text x="632" y="222" fill="#4a5b7a" font-size="10.5">@huggingface/transformers v3</text>
+        <text x="632" y="236" fill="#4a5b7a" font-size="10.5">whisper-tiny / base · WebGPU + WASM</text>
+        <text x="632" y="250" fill="#4a5b7a" font-size="10.5">完全离线推理</text>
+
+        <!-- Network calls -->
+        <rect x="600" y="294" width="340" height="86" rx="10" fill="url(#gradSoft)" stroke="#d6e2f3"/>
+        <text x="616" y="316" fill="#1d4ed8" font-family="Inter, sans-serif" font-size="13" font-weight="700">Network (fetch)</text>
+        <text x="616" y="336" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="11">/api/asr/groq/*</text>
+        <text x="616" y="352" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="11">/api/llm/deepseek/*</text>
+        <text x="616" y="368" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="11">/api/llm/mimo/* · /api/llm/ollama/*</text>
+
+        <!-- arrows inside browser -->
+        <line x1="300" y1="140" x2="320" y2="140" stroke="#4a5b7a" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="180" y1="180" x2="180" y2="200" stroke="#4a5b7a" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="440" y1="180" x2="440" y2="200" stroke="#4a5b7a" stroke-width="1.4" marker-end="url(#arr)"/>
+        <line x1="310" y1="329" x2="600" y2="137" stroke="#1d4ed8" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#arrA)" opacity="0.7"/>
+        <line x1="440" y1="180" x2="600" y2="225" stroke="#1d4ed8" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#arrA)" opacity="0.7"/>
+
+        <!-- Vite proxy -->
+        <rect x="20" y="420" width="940" height="100" rx="12" fill="#ffffff" stroke="#a6bfde"/>
+        <text x="40" y="442" fill="#d97706" font-family="Inter, sans-serif" font-size="12" font-weight="700">Vite Dev Server Proxy</text>
+        <text x="40" y="458" fill="#4a5b7a" font-size="11">透传 Authorization header · 仅做 URL 重写 · 零业务代码 · 解 CORS</text>
+
+        <!-- Cloud endpoints -->
+        <g font-family="Inter, sans-serif" font-size="11" fill="#1d4ed8">
+          <rect x="60"  y="476" width="160" height="32" rx="6" fill="#f4f8ff" stroke="#d6e2f3"/>
+          <text x="140" y="497" text-anchor="middle">Groq Whisper API</text>
+          <rect x="240" y="476" width="160" height="32" rx="6" fill="#f4f8ff" stroke="#d6e2f3"/>
+          <text x="320" y="497" text-anchor="middle">DeepSeek V4</text>
+          <rect x="420" y="476" width="160" height="32" rx="6" fill="#f4f8ff" stroke="#d6e2f3"/>
+          <text x="500" y="497" text-anchor="middle">Xiaomi MiMo</text>
+          <rect x="600" y="476" width="160" height="32" rx="6" fill="#f4f8ff" stroke="#d6e2f3"/>
+          <text x="680" y="497" text-anchor="middle">Ollama (本机)</text>
+          <rect x="780" y="476" width="160" height="32" rx="6" fill="#f4f8ff" stroke="#d6e2f3"/>
+          <text x="860" y="497" text-anchor="middle">自定义 endpoint</text>
+        </g>
+
+        <line x1="770" y1="380" x2="770" y2="418" stroke="#4a5b7a" stroke-width="1.4" marker-end="url(#arr)"/>
+      </svg>
+      <div class="caption">图 1 · 整体进程拓扑：绿色字部分为 v0.2 新增组件（SelectionPopover、TranslateBar、rewriting / translating 状态分支）。</div>
+    </div>
+  </section>
+
+  <!-- ========== 3. Data Flow ========== -->
+  <section id="s-flow">
+    <h2><span class="num">§03</span>核心数据流</h2>
+    <h3 class="title">主路径：按下热键 → 文本落入演示区 · 全程 ≤ 3 秒</h3>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Data flow timeline">
+        <defs>
+          <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#1d4ed8"/>
+          </marker>
+        </defs>
+
+        <!-- swim lanes -->
+        <g font-family="Inter, sans-serif" fill="#4a5b7a" font-size="11">
+          <text x="20" y="50">User</text>
+          <text x="20" y="110">Browser (Mic / Workers)</text>
+          <text x="20" y="200">App State Machine</text>
+          <text x="20" y="290">Network (via Vite proxy)</text>
+          <text x="20" y="380">UI / Clipboard</text>
+        </g>
+
+        <!-- lane lines -->
+        <g stroke="#d6e2f3" stroke-width="1">
+          <line x1="160" y1="60" x2="960" y2="60"/>
+          <line x1="160" y1="150" x2="960" y2="150"/>
+          <line x1="160" y1="240" x2="960" y2="240"/>
+          <line x1="160" y1="330" x2="960" y2="330"/>
+          <line x1="160" y1="420" x2="960" y2="420"/>
+        </g>
+
+        <!-- timeline ticks -->
+        <g font-family="JetBrains Mono, monospace" font-size="10" fill="#8694ac">
+          <text x="200" y="448" text-anchor="middle">t=0</text>
+          <text x="350" y="448" text-anchor="middle">+0.1s</text>
+          <text x="500" y="448" text-anchor="middle">VAD end</text>
+          <text x="650" y="448" text-anchor="middle">+0.6s</text>
+          <text x="800" y="448" text-anchor="middle">+2.4s</text>
+          <text x="930" y="448" text-anchor="middle">+2.8s</text>
+        </g>
+
+        <circle cx="200" cy="50" r="9" fill="#1d4ed8"/>
+        <text x="200" y="34" text-anchor="middle" fill="#0f1e3a" font-size="11">按住 Space</text>
+
+        <rect x="170" y="80" width="160" height="56" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="250" y="100" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">getUserMedia()</text>
+        <text x="250" y="116" text-anchor="middle" fill="#4a5b7a" font-size="10">AudioWorklet · 16k mono</text>
+        <text x="250" y="130" text-anchor="middle" fill="#4a5b7a" font-size="10">→ Float32 stream</text>
+
+        <rect x="340" y="80" width="160" height="56" rx="6" fill="#ffffff" stroke="#1d4ed8"/>
+        <text x="420" y="100" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">vad.worker</text>
+        <text x="420" y="116" text-anchor="middle" fill="#1d4ed8" font-size="10">silero-vad · 30ms 帧</text>
+        <text x="420" y="130" text-anchor="middle" fill="#1d4ed8" font-size="10">600ms 静音 → cutoff</text>
+
+        <rect x="170" y="170" width="160" height="56" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="250" y="190" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">state=recording</text>
+        <text x="250" y="208" text-anchor="middle" fill="#4a5b7a" font-size="10">收 chunks 累积</text>
+
+        <rect x="510" y="170" width="160" height="56" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="590" y="190" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">state=transcribing</text>
+        <text x="590" y="208" text-anchor="middle" fill="#4a5b7a" font-size="10">PCM → WAV blob</text>
+
+        <rect x="700" y="170" width="160" height="56" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="780" y="190" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">state=polishing</text>
+        <text x="780" y="208" text-anchor="middle" fill="#4a5b7a" font-size="10">SSE 流式 token</text>
+
+        <rect x="870" y="170" width="90" height="56" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="915" y="190" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">injecting</text>
+
+        <rect x="510" y="260" width="160" height="56" rx="6" fill="#ffffff" stroke="#06b6d4"/>
+        <text x="590" y="280" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">POST whisper</text>
+        <text x="590" y="298" text-anchor="middle" fill="#06b6d4" font-size="10">/api/asr/groq → Groq</text>
+
+        <rect x="700" y="260" width="160" height="56" rx="6" fill="#ffffff" stroke="#06b6d4"/>
+        <text x="780" y="280" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">POST chat (SSE)</text>
+        <text x="780" y="298" text-anchor="middle" fill="#06b6d4" font-size="10">/api/llm/deepseek</text>
+
+        <rect x="870" y="350" width="90" height="56" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="915" y="370" text-anchor="middle" fill="#0f1e3a" font-size="11" font-weight="600">DemoSurface</text>
+        <text x="915" y="388" text-anchor="middle" fill="#4a5b7a" font-size="10">+ clipboard</text>
+
+        <g stroke="#1d4ed8" stroke-width="1.4" fill="none" marker-end="url(#arr2)">
+          <path d="M250 60 L250 80"/>
+          <path d="M330 110 L340 110"/>
+          <path d="M250 136 L250 170"/>
+          <path d="M420 136 L500 198 L510 198" stroke-dasharray="3 3"/>
+          <path d="M330 198 L510 198"/>
+          <path d="M590 226 L590 260"/>
+          <path d="M670 288 L780 260" stroke-dasharray="3 3"/>
+          <path d="M670 198 L700 198"/>
+          <path d="M780 226 L780 260"/>
+          <path d="M860 288 L915 350"/>
+          <path d="M860 198 L870 198"/>
+        </g>
+      </svg>
+      <div class="caption">图 2 · 主路径（听写）端到端数据流。框选改写与语音翻译共用左半 ASR 链路，在 polishing 节点切换 prompt → 见 §09。</div>
+    </div>
+
+    <div class="grid-cards">
+      <div class="card"><h5 style="margin:0 0 6px;">① 采集</h5><p style="margin:0; color:var(--tx-sec); font-size:13px;">用户按住空格触发 <code>HOTKEY_DOWN</code>。<code>useRecorder</code> 拿到 16k mono Float32 流，分发给 VAD worker 与累积缓冲。</p></div>
+      <div class="card"><h5 style="margin:0 0 6px;">② 截断</h5><p style="margin:0; color:var(--tx-sec); font-size:13px;">VAD 检测到 600ms 静音 → <code>VAD_END</code>；或用户松开键 → <code>HOTKEY_UP</code>。任一即进入 transcribing。</p></div>
+      <div class="card"><h5 style="margin:0 0 6px;">③ 转写</h5><p style="margin:0; color:var(--tx-sec); font-size:13px;">PCM→WAV blob multipart POST 到 Groq Whisper（默认）。带 <code>language=auto</code> + 词典提示。</p></div>
+      <div class="card"><h5 style="margin:0 0 6px;">④ 润色 / 改写 / 翻译</h5><p style="margin:0; color:var(--tx-sec); font-size:13px;">LLM 走 OpenAI 兼容 chat completions（DeepSeek 默认），SSE 流式。根据模式切换三套不同的 <strong style="color:var(--tx)">prompt</strong>。</p></div>
+      <div class="card"><h5 style="margin:0 0 6px;">⑤ 注入</h5><p style="margin:0; color:var(--tx-sec); font-size:13px;">写入 DemoSurface textarea 或替换选区，同时 <code>navigator.clipboard.writeText</code> 写系统剪贴板。</p></div>
+      <div class="card"><h5 style="margin:0 0 6px;">⑥ 学习</h5><p style="margin:0; color:var(--tx-sec); font-size:13px;">30s 内若用户手动改动 textarea，diff 存为 passive-learning 样本，下次注入到 prompt。</p></div>
+    </div>
+  </section>
+
+  <!-- ========== 4. State machine ========== -->
+  <section id="s-state">
+    <h2><span class="num">§04</span>核心状态机</h2>
+    <h3 class="title">5 个状态 · 3 种 mode 分支 · 每步带超时熔断</h3>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="State machine">
+        <defs>
+          <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#06b6d4"/>
+          </marker>
+          <marker id="arrErr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+          </marker>
+        </defs>
+
+        <g font-family="Inter, sans-serif">
+          <circle cx="100" cy="180" r="48" fill="#ffffff" stroke="#a6bfde" stroke-width="2"/>
+          <text x="100" y="178" text-anchor="middle" fill="#0f1e3a" font-size="14" font-weight="600">idle</text>
+          <text x="100" y="196" text-anchor="middle" fill="#4a5b7a" font-size="10">起始 / 终结</text>
+
+          <circle cx="290" cy="180" r="54" fill="#ffffff" stroke="#1d4ed8" stroke-width="2"/>
+          <text x="290" y="170" text-anchor="middle" fill="#0f1e3a" font-size="14" font-weight="600">recording</text>
+          <text x="290" y="190" text-anchor="middle" fill="#1d4ed8" font-size="10">mode: dictate</text>
+          <text x="290" y="204" text-anchor="middle" fill="#1d4ed8" font-size="10">| rewrite | translate</text>
+
+          <circle cx="490" cy="180" r="54" fill="#ffffff" stroke="#06b6d4" stroke-width="2"/>
+          <text x="490" y="174" text-anchor="middle" fill="#0f1e3a" font-size="14" font-weight="600">transcribing</text>
+          <text x="490" y="192" text-anchor="middle" fill="#06b6d4" font-size="10">ASR · 15s 上限</text>
+          <text x="490" y="206" text-anchor="middle" fill="#06b6d4" font-size="10">invoke: transcribe</text>
+
+          <circle cx="690" cy="180" r="50" fill="#ffffff" stroke="#06b6d4" stroke-width="2"/>
+          <text x="690" y="168" text-anchor="middle" fill="#0f1e3a" font-size="13" font-weight="600">polish</text>
+          <text x="690" y="186" text-anchor="middle" fill="#06b6d4" font-size="9.5">/ rewrite</text>
+          <text x="690" y="200" text-anchor="middle" fill="#06b6d4" font-size="9.5">/ translate</text>
+          <text x="690" y="214" text-anchor="middle" fill="#06b6d4" font-size="9.5">LLM SSE</text>
+
+          <circle cx="870" cy="180" r="46" fill="#ffffff" stroke="#059669" stroke-width="2"/>
+          <text x="870" y="178" text-anchor="middle" fill="#0f1e3a" font-size="13" font-weight="600">injecting</text>
+          <text x="870" y="194" text-anchor="middle" fill="#059669" font-size="10">append / replace</text>
+
+          <g stroke="#06b6d4" stroke-width="1.4" fill="none" marker-end="url(#arr3)">
+            <path d="M148 180 L236 180"/>
+            <path d="M344 180 L436 180"/>
+            <path d="M544 180 L640 180"/>
+            <path d="M740 180 L824 180"/>
+          </g>
+
+          <path d="M870 226 Q870 305 700 305 Q260 305 100 230" stroke="#059669" stroke-width="1.4" fill="none" marker-end="url(#arr3)" stroke-dasharray="0"/>
+
+          <path d="M290 234 Q290 335 100 230" stroke="#dc2626" stroke-width="1.2" fill="none" marker-end="url(#arrErr)" stroke-dasharray="4 3"/>
+          <path d="M490 234 Q490 335 100 230" stroke="#dc2626" stroke-width="1.2" fill="none" marker-end="url(#arrErr)" stroke-dasharray="4 3"/>
+          <path d="M690 230 Q690 325 100 230" stroke="#dc2626" stroke-width="1.2" fill="none" marker-end="url(#arrErr)" stroke-dasharray="4 3"/>
+
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="#4a5b7a">
+            <text x="192" y="170" text-anchor="middle">HOTKEY_DOWN</text>
+            <text x="392" y="170" text-anchor="middle">HOTKEY_UP / VAD_END</text>
+            <text x="592" y="170" text-anchor="middle">onDone</text>
+            <text x="783" y="170" text-anchor="middle">onDone</text>
+            <text x="500" y="345" fill="#dc2626">CANCEL / timeout / onError</text>
+            <text x="500" y="362" fill="#059669" font-size="9">success: logHistory · startPassiveLearning</text>
+          </g>
+
+          <!-- mode legend -->
+          <g font-family="Inter, sans-serif" font-size="10.5">
+            <rect x="40" y="40" width="220" height="68" rx="6" fill="#f4f8ff" stroke="#d6e2f3"/>
+            <text x="52" y="58" fill="#0f1e3a" font-weight="600">mode 分支</text>
+            <circle cx="56" cy="74" r="4" fill="#1d4ed8"/><text x="68" y="78" fill="#4a5b7a">dictate · 听写 → 润色 prompt</text>
+            <circle cx="56" cy="89" r="4" fill="#06b6d4"/><text x="68" y="93" fill="#4a5b7a">rewrite · 指令 → 改写 prompt</text>
+            <circle cx="56" cy="104" r="4" fill="#059669"/><text x="68" y="108" fill="#4a5b7a">translate · 译文 prompt</text>
+          </g>
+        </g>
+      </svg>
+      <div class="caption">图 3 · xstate 状态机：同一套状态骨架，<code>context.mode</code> 决定 polish 节点调用的 prompt（润色 / 改写 / 翻译），保证逻辑可控。</div>
+    </div>
+
+    <div class="code-block">
+      <div class="head"><span class="tag">src/machine/typeless.machine.ts</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-k">import</span> { setup, assign, fromPromise } <span class="tok-k">from</span> <span class="tok-s">'xstate'</span>;
+
+<span class="tok-k">type</span> Mode = <span class="tok-s">'dictate'</span> | <span class="tok-s">'rewrite'</span> | <span class="tok-s">'translate'</span>;
+
+<span class="tok-k">export const</span> <span class="tok-f">typelessMachine</span> = <span class="tok-f">setup</span>({
+  types: {} <span class="tok-k">as</span> {
+    context: {
+      mode: Mode;
+      audio: Float32Array | <span class="tok-k">null</span>;
+      raw: <span class="tok-t">string</span>; output: <span class="tok-t">string</span>;
+      <span class="tok-c">// rewrite 分支专用</span>
+      selectionText?: <span class="tok-t">string</span>; selectionRange?: { start: <span class="tok-t">number</span>; end: <span class="tok-t">number</span> };
+      rewritePreset?: <span class="tok-t">string</span>;       <span class="tok-c">// 'formal' | 'casual' | 'shorten' | 'expand' | 'fix-typo' | 'translate'</span>
+      <span class="tok-c">// translate 分支专用</span>
+      targetLang?: <span class="tok-t">string</span>;          <span class="tok-c">// 'en' | 'zh' | 'ja' | 'ko' | ...</span>
+      appContext: AppContext;
+      error: <span class="tok-t">string</span> | <span class="tok-k">null</span>;
+    };
+    events:
+      | { type: <span class="tok-s">'HOTKEY_DOWN'</span>; mode?: Mode }
+      | { type: <span class="tok-s">'HOTKEY_UP'</span> }
+      | { type: <span class="tok-s">'VAD_END'</span> }
+      | { type: <span class="tok-s">'REWRITE_PRESET'</span>; preset: <span class="tok-t">string</span> }   <span class="tok-c">// 选区菜单按钮触发，无需录音</span>
+      | { type: <span class="tok-s">'CANCEL'</span> };
+  },
+  actors: {
+    transcribe: <span class="tok-f">fromPromise</span>(<span class="tok-k">async</span> ({ input }) =&gt; asr.<span class="tok-f">transcribe</span>(input.pcm)),
+    polish:     <span class="tok-f">fromPromise</span>(<span class="tok-k">async</span> ({ input }) =&gt; {
+      <span class="tok-k">switch</span> (input.mode) {
+        <span class="tok-k">case</span> <span class="tok-s">'rewrite'</span>:   <span class="tok-k">return</span> llm.<span class="tok-f">rewrite</span>(input.selection, input.instruction, input.ctx);
+        <span class="tok-k">case</span> <span class="tok-s">'translate'</span>: <span class="tok-k">return</span> llm.<span class="tok-f">translate</span>(input.raw, input.targetLang, input.ctx);
+        <span class="tok-k">default</span>:           <span class="tok-k">return</span> llm.<span class="tok-f">polish</span>(input.raw, input.ctx);
+      }
+    }),
+    inject:     <span class="tok-f">fromPromise</span>(<span class="tok-k">async</span> ({ input }) =&gt;
+      input.mode === <span class="tok-s">'rewrite'</span>
+        ? <span class="tok-f">replaceSelection</span>(input.range!, input.text)
+        : <span class="tok-f">appendDemoText</span>(input.text)),
+  },
+}).<span class="tok-f">createMachine</span>({
+  id: <span class="tok-s">'typeless'</span>, initial: <span class="tok-s">'idle'</span>,
+  states: {
+    idle: { on: {
+      HOTKEY_DOWN: { target: <span class="tok-s">'recording'</span>, actions: assign({ mode: ({ event }) =&gt; event.mode ?? <span class="tok-s">'dictate'</span> }) },
+      REWRITE_PRESET: { target: <span class="tok-s">'polishing'</span>, actions: assign({ mode: <span class="tok-s">'rewrite'</span> }) },
+    } },
+    recording: { on: { HOTKEY_UP: <span class="tok-s">'transcribing'</span>, VAD_END: <span class="tok-s">'transcribing'</span>, CANCEL: <span class="tok-s">'idle'</span> }, after: { <span class="tok-n">60000</span>: <span class="tok-s">'idle'</span> } },
+    transcribing: { invoke: { src: <span class="tok-s">'transcribe'</span>, onDone: <span class="tok-s">'polishing'</span>, onError: <span class="tok-s">'idle'</span> }, after: { <span class="tok-n">15000</span>: <span class="tok-s">'idle'</span> } },
+    polishing:    { invoke: { src: <span class="tok-s">'polish'</span>,     onDone: <span class="tok-s">'injecting'</span>, onError: <span class="tok-s">'idle'</span> }, after: { <span class="tok-n">15000</span>: <span class="tok-s">'idle'</span> } },
+    injecting:    { invoke: { src: <span class="tok-s">'inject'</span>,     onDone: <span class="tok-s">'idle'</span>,      onError: <span class="tok-s">'idle'</span> } },
+  },
+});</code></pre>
+    </div>
+  </section>
+
+  <!-- ========== 5. Stack ========== -->
+  <section id="s-stack">
+    <h2><span class="num">§05</span>技术栈选型</h2>
+    <h3 class="title">每一层都有明确理由</h3>
+
+    <table>
+      <thead><tr><th>层</th><th>选型</th><th>核心理由</th><th>替代</th></tr></thead>
+      <tbody>
+        <tr><td><b>构建</b></td><td>Vite 5</td><td>dev server 自带 proxy 解 CORS · HMR · TS 原生</td><td>Next.js, Parcel</td></tr>
+        <tr><td><b>UI</b></td><td>React 18 + TS</td><td>生态最全 · shadcn/ui 直接对接 typeless 风格</td><td>Svelte, Solid</td></tr>
+        <tr><td><b>样式</b></td><td>Tailwind + shadcn/ui</td><td>Radix Primitives 无障碍 · 主题快</td><td>CSS Modules</td></tr>
+        <tr><td><b>状态机</b></td><td>xstate v5</td><td>三模式分支共用骨架 · 比 reducer 健壮</td><td>useReducer + Effect</td></tr>
+        <tr><td><b>全局状态</b></td><td>Zustand</td><td>持久化轻量 · 不需要 Redux 仪式感</td><td>Jotai, Valtio</td></tr>
+        <tr><td><b>持久化</b></td><td>localforage</td><td>IndexedDB · 几 MB 历史/词典够用</td><td>Dexie</td></tr>
+        <tr><td><b>录音</b></td><td>MediaRecorder + AudioWorklet</td><td>16k mono · worker 实时处理</td><td>RecordRTC</td></tr>
+        <tr><td><b>VAD</b></td><td>silero-vad + onnxruntime-web</td><td>1.8MB · 30ms 帧 1ms 处理</td><td>WebRTC VAD</td></tr>
+        <tr><td><b>云 ASR</b></td><td>Groq Whisper Turbo</td><td>最快 · 免费额度够 demo</td><td>OpenAI, SiliconFlow, Aliyun</td></tr>
+        <tr><td><b>本地 ASR</b></td><td>@huggingface/transformers v3</td><td>WebGPU 加速 · 离线</td><td>whisper-web</td></tr>
+        <tr><td><b>LLM</b></td><td>DeepSeek V4 Flash</td><td>便宜 · 中英文俱佳 · OpenAI 兼容</td><td>MiMo, Qwen3, GPT-4o-mini</td></tr>
+        <tr><td><b>浮层</b></td><td>floating-ui</td><td>选区 popover 跟随光标位置 · 翻转 · 边界检测</td><td>Popper.js</td></tr>
+        <tr><td><b>通知</b></td><td>sonner</td><td>API 简单 · 漂亮</td><td>react-hot-toast</td></tr>
+        <tr><td><b>i18n</b></td><td>i18next</td><td>UI 与翻译目标语言列表共用</td><td>format.js</td></tr>
+        <tr><td><b>包管理器</b></td><td>pnpm</td><td>lockfile 小 · 磁盘省</td><td>npm, yarn</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ========== 6. Repo structure ========== -->
+  <section id="s-repo">
+    <h2><span class="num">§06</span>仓库结构</h2>
+    <h3 class="title">扁平 src/ · 按职责分目录</h3>
+
+    <div class="card">
+<div class="tree">typeless_reproduce/
+├── <span class="file">plan.html</span>             <span class="note"># 本文件</span>
+├── <span class="file">README.md</span>             <span class="note"># 起步指引</span>
+├── <span class="file">.gitignore</span>
+├── <span class="file">package.json</span>          <span class="note"># pnpm</span>
+├── <span class="file">vite.config.ts</span>        <span class="note"># 含 dev proxy · §11.1</span>
+├── <span class="file">tsconfig.json</span>
+├── <span class="file">tailwind.config.ts</span>
+├── <span class="file">index.html</span>
+├── <span class="dir">public/</span>
+│   └── <span class="dir">models/</span>            <span class="note"># silero-vad.onnx · whisper（按需）</span>
+├── <span class="dir">src/</span>
+│   ├── <span class="file">main.tsx · App.tsx</span>
+│   ├── <span class="dir">components/</span>
+│   │   ├── HotkeyHint · Waveform · DemoSurface
+│   │   ├── ResultPanel · AppContextSwitcher
+│   │   ├── HistoryList · DictionaryEditor
+│   │   ├── SettingsDialog · ModelManager
+│   │   ├── <span class="new">SelectionPopover.tsx</span>    <span class="new"># 框选改写浮层</span>
+│   │   ├── <span class="new">TranslateBar.tsx</span>         <span class="new"># 翻译模式顶部条 + 语言下拉</span>
+│   │   └── <span class="dir">ui/</span>             <span class="note"># shadcn 生成</span>
+│   ├── <span class="dir">hooks/</span>
+│   │   ├── useRecorder · useHotkey · useAsr · useLlm · useInject
+│   │   ├── <span class="new">useTextareaSelection.ts</span> <span class="new"># 监听 selectionStart/End</span>
+│   │   └── <span class="new">useTranslate.ts</span>          <span class="new"># 翻译路径</span>
+│   ├── <span class="dir">machine/</span>
+│   │   └── typeless.machine.ts          <span class="note"># 三模式分支</span>
+│   ├── <span class="dir">workers/</span>
+│   │   ├── vad.worker.ts        <span class="note"># silero-vad</span>
+│   │   └── asr.worker.ts        <span class="note"># transformers.js（选配）</span>
+│   ├── <span class="dir">lib/</span>
+│   │   ├── <span class="dir">asr/</span>            types.ts · cloud.ts · local-transformers.ts · index.ts
+│   │   ├── <span class="dir">llm/</span>
+│   │   │   ├── client.ts · endpoints.ts · index.ts
+│   │   │   └── <span class="dir">prompts/</span>
+│   │   │       ├── polish.v1.ts
+│   │   │       ├── <span class="new">rewrite.v1.ts</span>      <span class="new"># 选区改写</span>
+│   │   │       ├── <span class="new">translate.v1.ts</span>    <span class="new"># 语音翻译</span>
+│   │   │       └── app-rules.ts
+│   │   ├── <span class="dir">audio/</span>          pcm.ts · worklet.ts
+│   │   ├── <span class="dir">storage/</span>        config.ts · history.ts · dictionary.ts
+│   │   └── <span class="new"><span class="dir">i18n/</span></span>           <span class="new">languages.ts · presets.ts</span>
+│   └── <span class="dir">styles/</span>            globals.css
+└── <span class="dir">docs/</span>
+    ├── architecture.md
+    ├── api-keys.md
+    └── prompts.md</div>
+    </div>
+  </section>
+
+  <!-- ========== 7. UI design ========== -->
+  <section id="s-ui">
+    <h2><span class="num">§07</span>UI 设计</h2>
+    <h3 class="title">单页布局 · 顶部 TranslateBar · 模拟应用 + 浮层菜单</h3>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 620" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="UI mockup">
+        <rect x="20" y="20" width="940" height="580" rx="14" fill="#ffffff" stroke="#a6bfde"/>
+
+        <!-- top bar -->
+        <rect x="40" y="40" width="900" height="56" rx="8" fill="#f4f8ff" stroke="#d6e2f3"/>
+        <circle cx="62" cy="68" r="6" fill="#1d4ed8"/>
+        <text x="80" y="73" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="13" font-weight="600">Typeless</text>
+        <text x="80" y="88" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="10">按住 Space 录音</text>
+
+        <rect x="220" y="56" width="120" height="26" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="280" y="74" text-anchor="middle" fill="#1d4ed8" font-family="Inter, sans-serif" font-size="11">📧 Email · 正式</text>
+
+        <rect x="360" y="56" width="160" height="26" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="440" y="74" text-anchor="middle" fill="#06b6d4" font-family="Inter, sans-serif" font-size="11">DeepSeek V4 Flash</text>
+
+        <rect x="540" y="56" width="100" height="26" rx="6" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="590" y="74" text-anchor="middle" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11">Groq Turbo</text>
+
+        <!-- Translate mode toggle (NEW) -->
+        <rect x="660" y="52" width="172" height="32" rx="7" fill="#ecfdf5" stroke="#059669"/>
+        <text x="678" y="73" fill="#059669" font-family="Inter, sans-serif" font-size="11" font-weight="600">🌐 译为</text>
+        <text x="722" y="73" fill="#047857" font-family="Inter, sans-serif" font-size="11" font-weight="600">English ▾</text>
+        <text x="800" y="73" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="10">⌘⇧T</text>
+
+        <rect x="852" y="52" width="76" height="32" rx="7" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="890" y="73" text-anchor="middle" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="11">⚙ 设置</text>
+
+        <!-- demo surface -->
+        <rect x="40" y="110" width="560" height="310" rx="10" fill="#f8faff" stroke="#d6e2f3"/>
+        <text x="56" y="132" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11" letter-spacing="0.08em">模拟目标应用 ▾</text>
+        <line x1="56" y1="146" x2="584" y2="146" stroke="#d6e2f3"/>
+
+        <text x="56" y="170" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="13">Hi Sarah,</text>
+        <text x="56" y="194" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="13">Thanks for your patience. I've reviewed the </text>
+        <!-- selected highlight -->
+        <rect x="335" y="180" width="180" height="20" rx="3" fill="#dbeafe" stroke="#1d4ed8" stroke-width="0.5"/>
+        <text x="343" y="194" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="13">proposal and I think we</text>
+        <text x="56" y="212" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="13">can move forward with option B. Could you</text>
+        <text x="56" y="230" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="13">share the updated timeline by Friday?</text>
+
+        <!-- Selection popover (NEW) -->
+        <g>
+          <rect x="335" y="208" width="320" height="120" rx="10" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.5"/>
+          <polygon points="375,208 385,200 395,208" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.5"/>
+          <text x="349" y="229" fill="#1d4ed8" font-family="Inter, sans-serif" font-size="11" font-weight="600">✨ AI 改写选区</text>
+          <text x="630" y="229" text-anchor="end" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="10">14 字</text>
+          <line x1="349" y1="238" x2="641" y2="238" stroke="#dbeafe"/>
+
+          <!-- preset buttons -->
+          <g font-family="Inter, sans-serif" font-size="10.5">
+            <rect x="349" y="248" width="58" height="22" rx="11" fill="#dbeafe" stroke="#1d4ed8"/>
+            <text x="378" y="263" text-anchor="middle" fill="#1d4ed8">更正式</text>
+            <rect x="413" y="248" width="58" height="22" rx="11" fill="#f4f8ff" stroke="#d6e2f3"/>
+            <text x="442" y="263" text-anchor="middle" fill="#4a5b7a">更口语</text>
+            <rect x="477" y="248" width="48" height="22" rx="11" fill="#f4f8ff" stroke="#d6e2f3"/>
+            <text x="501" y="263" text-anchor="middle" fill="#4a5b7a">简化</text>
+            <rect x="531" y="248" width="48" height="22" rx="11" fill="#f4f8ff" stroke="#d6e2f3"/>
+            <text x="555" y="263" text-anchor="middle" fill="#4a5b7a">扩写</text>
+            <rect x="585" y="248" width="56" height="22" rx="11" fill="#f4f8ff" stroke="#d6e2f3"/>
+            <text x="613" y="263" text-anchor="middle" fill="#4a5b7a">修错</text>
+
+            <rect x="349" y="278" width="58" height="22" rx="11" fill="#ecfdf5" stroke="#059669"/>
+            <text x="378" y="293" text-anchor="middle" fill="#059669">🌐 译</text>
+            <rect x="413" y="278" width="228" height="22" rx="11" fill="#f4f8ff" stroke="#d6e2f3"/>
+            <text x="421" y="293" fill="#94a3b8">🎤 按住录入自定义指令…</text>
+          </g>
+          <text x="349" y="318" fill="#94a3b8" font-family="JetBrains Mono, monospace" font-size="10">ESC 关闭 · Enter 应用上次</text>
+        </g>
+
+        <!-- right column -->
+        <rect x="620" y="110" width="320" height="143" rx="10" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="636" y="132" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11" letter-spacing="0.08em">RAW ASR · 原文</text>
+        <line x1="636" y1="146" x2="924" y2="146" stroke="#d6e2f3"/>
+        <text x="636" y="170" fill="#dc2626" font-family="Inter, sans-serif" font-size="11.5">嗯今天天气今天天气不错</text>
+        <text x="636" y="188" fill="#dc2626" font-family="Inter, sans-serif" font-size="11.5">我们去公园吧不对去爬山</text>
+        <text x="636" y="206" fill="#dc2626" font-family="Inter, sans-serif" font-size="11.5">吧第一带水第二带防晒</text>
+        <text x="636" y="224" fill="#dc2626" font-family="Inter, sans-serif" font-size="11.5">第三早点出发</text>
+
+        <rect x="620" y="265" width="320" height="155" rx="10" fill="#ecfdf5" stroke="#059669"/>
+        <text x="636" y="287" fill="#059669" font-family="Inter, sans-serif" font-size="11" font-weight="600" letter-spacing="0.08em">TRANSLATED · 译文 (EN)</text>
+        <line x1="636" y1="298" x2="924" y2="298" stroke="#a7f3d0"/>
+        <text x="636" y="322" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="12">The weather is nice today.</text>
+        <text x="636" y="340" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="12">Let's go hiking. Here's the list:</text>
+        <text x="636" y="358" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="12">1. Bring water</text>
+        <text x="636" y="376" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="12">2. Bring sunscreen</text>
+        <text x="636" y="394" fill="#0f1e3a" font-family="Inter, sans-serif" font-size="12">3. Leave early</text>
+
+        <!-- tabs -->
+        <rect x="40" y="440" width="900" height="46" rx="8" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="60" y="468" fill="#1d4ed8" font-family="Inter, sans-serif" font-size="12" font-weight="600">History</text>
+        <text x="140" y="468" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="12">Dictionary</text>
+        <text x="230" y="468" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="12">Endpoints</text>
+        <text x="320" y="468" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="12">Privacy</text>
+        <text x="900" y="468" text-anchor="end" fill="#8694ac" font-family="JetBrains Mono, monospace" font-size="10">23 条历史</text>
+
+        <!-- floating waveform -->
+        <rect x="370" y="504" width="240" height="68" rx="34" fill="#ffffff" stroke="#1d4ed8" stroke-width="2" filter="drop-shadow(0 8px 16px rgba(29,78,216,0.15))"/>
+        <circle cx="402" cy="538" r="10" fill="#dc2626"><animate attributeName="opacity" values="1;0.4;1" dur="1s" repeatCount="indefinite"/></circle>
+        <text x="424" y="532" fill="#0f1e3a" font-family="JetBrains Mono, monospace" font-size="11">REC 00:03</text>
+
+        <g fill="#1d4ed8">
+          <rect x="430" y="542" width="3" height="14" rx="1"><animate attributeName="height" values="14;6;18;10;14" dur="1.2s" repeatCount="indefinite"/></rect>
+          <rect x="438" y="538" width="3" height="22" rx="1"><animate attributeName="height" values="22;10;6;20;22" dur="1.1s" repeatCount="indefinite"/></rect>
+          <rect x="446" y="542" width="3" height="16" rx="1"><animate attributeName="height" values="16;22;8;16" dur="1.4s" repeatCount="indefinite"/></rect>
+          <rect x="454" y="534" width="3" height="28" rx="1"><animate attributeName="height" values="28;12;20;28" dur="1.3s" repeatCount="indefinite"/></rect>
+          <rect x="462" y="542" width="3" height="14" rx="1"><animate attributeName="height" values="14;26;8;14" dur="1.0s" repeatCount="indefinite"/></rect>
+          <rect x="470" y="538" width="3" height="20" rx="1"><animate attributeName="height" values="20;8;24;20" dur="1.2s" repeatCount="indefinite"/></rect>
+          <rect x="478" y="542" width="3" height="14" rx="1"><animate attributeName="height" values="14;22;10;14" dur="1.1s" repeatCount="indefinite"/></rect>
+          <rect x="486" y="540" width="3" height="18" rx="1"><animate attributeName="height" values="18;12;26;18" dur="1.3s" repeatCount="indefinite"/></rect>
+          <rect x="494" y="542" width="3" height="16" rx="1"><animate attributeName="height" values="16;24;6;16" dur="1.2s" repeatCount="indefinite"/></rect>
+          <rect x="502" y="538" width="3" height="22" rx="1"><animate attributeName="height" values="22;10;18;22" dur="1.0s" repeatCount="indefinite"/></rect>
+          <rect x="510" y="542" width="3" height="14" rx="1"><animate attributeName="height" values="14;20;6;14" dur="1.4s" repeatCount="indefinite"/></rect>
+          <rect x="518" y="542" width="3" height="16" rx="1"><animate attributeName="height" values="16;8;22;16" dur="1.1s" repeatCount="indefinite"/></rect>
+        </g>
+        <text x="540" y="546" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11">~~~~</text>
+        <text x="590" y="542" text-anchor="end" fill="#8694ac" font-family="Inter, sans-serif" font-size="10">ESC 取消</text>
+      </svg>
+      <div class="caption">图 4 · 主界面草图：顶部新增"译为 [English ▾]"模式开关（绿色高亮）；textarea 内选中文本弹出蓝色框选改写浮层；右侧切换为 RAW + TRANSLATED 双列。</div>
+    </div>
+  </section>
+
+  <!-- ========== 8. Features ========== -->
+  <section id="s-features">
+    <h2><span class="num">§08</span>功能清单</h2>
+    <h3 class="title">10 类核心功能 · 与 typeless 对齐 + 2 类强化</h3>
+    <p class="lead">标 ★ 为 demo 形态妥协；<span class="chip-new">NEW</span> 标识 v0.2 新增/强化。</p>
+
+    <div class="feat-cat">
+      <h5><span class="letter">A</span>核心听写</h5>
+      <ul>
+        <li><b>A1</b>默认热键 <span class="kbd">Space</span>（push-to-talk）；可改 <span class="kbd">Cmd/Ctrl+.</span></li>
+        <li><b>A2</b>实时波形浮层（32 频段 + 录音时长 + 状态色）</li>
+        <li><b>A3</b>VAD 自动截断（600ms 静音）</li>
+        <li><b>A4</b>转写完成 → 写入"模拟目标应用"演示区 + 系统剪贴板 <b style="color:var(--warn)">★</b></li>
+        <li><b>A5</b><span class="kbd">ESC</span> 取消；同热键短按 cancel</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat">
+      <h5><span class="letter">B</span>AI 润色</h5>
+      <ul>
+        <li><b>B1</b>去口头禅（嗯、啊、那个、um、uh、like）</li>
+        <li><b>B2</b>去重复（"我我我想"、"这个这个"）</li>
+        <li><b>B3</b>自我纠正识别（"北京……不对是上海" → "上海"）</li>
+        <li><b>B4</b>自动标点、断句、首字母大写</li>
+        <li><b>B5</b>列表识别（第一/第二 → 数字列表）</li>
+        <li><b>B6</b>100+ 语言自动检测 · 中英混输不切换</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat">
+      <h5><span class="letter">C</span>上下文感知 <b style="color:var(--warn)">★</b></h5>
+      <ul>
+        <li><b>C1</b>AppContextSwitcher 切换模拟应用（Email/Slack/Code/Notes/Casual）</li>
+        <li><b>C2</b>每应用 prompt 模板（formality / tone / markdown）</li>
+        <li><b>C3</b>Markdown 模式开关 + react-markdown 渲染</li>
+        <li><b>C4</b>用户可添加自定义规则</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat is-new">
+      <h5><span class="letter">D</span>框选改写 <span class="chip-new">v0.2 强化</span></h5>
+      <ul>
+        <li><b>D1</b>textarea 内选中文本（任意长度 ≥ 2 字符）→ 浮动菜单 <code>SelectionPopover</code> 跟随选区底部出现</li>
+        <li><b>D2</b>菜单含 <strong style="color:var(--tx)">6 个预设按钮</strong>：更正式 / 更口语 / 简化 / 扩写 / 修正错别字 / 翻译为目标语言（共用顶部 TranslateBar 的语言下拉）</li>
+        <li><b>D3</b>菜单含 <strong style="color:var(--tx)">自定义指令</strong>：按住麦克风按钮录指令（"改成疑问句"、"加 emoji"）→ ASR → rewrite prompt</li>
+        <li><b>D4</b>命令模式自动识别：在听写模式 ASR 文本若以"修改/翻译/总结/扩写/改成"开头且有 selection → 自动切到 rewrite 路径</li>
+        <li><b>D5</b>流式替换：SSE token 实时替换选区内容（背景高亮 cyan 提示进行中），完成后取消高亮</li>
+        <li><b>D6</b>失败回退：LLM 出错时保留原选区文字 + 红色边框提示，不破坏用户内容</li>
+        <li><b>D7</b>Undo：单次替换走浏览器原生 textarea undo stack（execCommand insertText）</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat is-new">
+      <h5><span class="letter">E</span>个性化与学习</h5>
+      <ul>
+        <li><b>E1</b>用户词典 UI 增删改 + 注入到 prompt</li>
+        <li><b>E2</b>被动学习：注入后 30s 内 textarea 改动 → diff 存样本，累计 ≥10 条注入 prompt</li>
+        <li><b>E3</b>历史会话：IndexedDB 存最近 200，UI 搜索/复制/回填，记录 mode 字段（dictate/rewrite/translate）</li>
+        <li><b>E4</b>语气画像：50+ 条后分析句长/正式度，写回 prompt</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat">
+      <h5><span class="letter">F</span>隐私与安全</h5>
+      <ul>
+        <li><b>F1</b>一键删除所有数据（localforage clear）</li>
+        <li><b>F2</b>离线模式 toggle：禁掉云端，强制本地</li>
+        <li><b>F3</b>API Key 显眼提示存于 localStorage</li>
+        <li><b>F4</b>历史数据导出 JSON</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat">
+      <h5><span class="letter">G</span>模型管理</h5>
+      <ul>
+        <li><b>G1</b>ASR backend 切换：Groq / OpenAI / SiliconFlow / 阿里 / 浏览器本地</li>
+        <li><b>G2</b>本地 ASR 一键下载（whisper-tiny / base via @huggingface/transformers）</li>
+        <li><b>G3</b>LLM endpoint 管理：DeepSeek / MiMo / Ollama · 自定义 base_url</li>
+        <li><b>G4</b>endpoint 连通测试 + 列出可用模型</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat">
+      <h5><span class="letter">H</span>体验细节</h5>
+      <ul>
+        <li><b>H1</b>状态条（顶部固定）显示热键 + 状态文字 + 当前模型</li>
+        <li><b>H2</b>录音浮层（中下方）波形 + 时长 + 取消按钮</li>
+        <li><b>H3</b>sonner toast：错误、完成、模型下载进度</li>
+        <li><b>H4</b>深色模式（system / light / dark）</li>
+        <li><b>H5</b>流式润色：LLM SSE 流式，结果区实时显示</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat is-new">
+      <h5><span class="letter">J</span>AI 语音翻译 <span class="chip-new">v0.2 新增</span></h5>
+      <ul>
+        <li><b>J1</b>独立热键 <span class="kbd">Cmd+Shift+T</span>（push-to-talk 翻译模式，与听写互斥）</li>
+        <li><b>J2</b>顶部 <code>TranslateBar</code>：模式开关 toggle + <strong style="color:var(--tx)">目标语言下拉</strong>（English / 中文 / 日本語 / 한국어 / Français / Español / Deutsch / Português / Русский / العربية / 自动）</li>
+        <li><b>J3</b>流水：录音 → ASR（自动语言检测）→ <code>translate.v1</code> prompt 翻译 → 注入译文（原文不丢，存入 history.raw / output 两个字段）</li>
+        <li><b>J4</b>ResultPanel 切换为双列：<strong style="color:#dc2626">RAW ASR · 原文</strong> + <strong style="color:var(--ok)">TRANSLATED · 译文</strong>，各自带复制按钮</li>
+        <li><b>J5</b>选区+翻译：textarea 选中文字 + SelectionPopover "🌐 译" 按钮 → 文本到文本翻译（不录音）</li>
+        <li><b>J6</b>语言自动检测：源语言 ASR 已带 <code>language</code> 字段，注入 prompt 让 LLM 双向判断</li>
+        <li><b>J7</b>"再来一种语言"快捷：注入后浮出气泡，可一键切换目标语言重新翻译同一段</li>
+        <li><b>J8</b>词典生效：翻译时同样应用 user dictionary（专有名词保留拼写）</li>
+      </ul>
+    </div>
+
+    <div class="feat-cat" style="opacity:0.5; border-style:dashed;">
+      <h5><span class="letter" style="background:#a6bfde">I</span>已删除（不实现）</h5>
+      <ul>
+        <li><s>跨平台 · Tauri · Windows · Android · iOS · 原生 IME 集成</s></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ========== 9. New flows ========== -->
+  <section id="s-newflows">
+    <h2><span class="num">§09</span>新增 · 两条新流程</h2>
+    <h3 class="title">框选改写 · 语音翻译 · 与主链路的共存方式</h3>
+
+    <h4>9.1 · 框选改写交互流</h4>
+    <div class="diagram">
+      <svg viewBox="0 0 980 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Selection rewrite flow">
+        <defs>
+          <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#1d4ed8"/>
+          </marker>
+        </defs>
+
+        <!-- step 1 -->
+        <rect x="40" y="50" width="160" height="80" rx="10" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="120" y="76" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">① 选中文本</text>
+        <text x="120" y="96" text-anchor="middle" fill="#4a5b7a" font-size="11">textarea</text>
+        <text x="120" y="112" text-anchor="middle" fill="#4a5b7a" font-size="11">selectionStart/End</text>
+
+        <!-- step 2 -->
+        <rect x="240" y="50" width="170" height="80" rx="10" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.5"/>
+        <text x="325" y="76" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">② Popover 弹出</text>
+        <text x="325" y="96" text-anchor="middle" fill="#1d4ed8" font-size="11">floating-ui · auto</text>
+        <text x="325" y="112" text-anchor="middle" fill="#1d4ed8" font-size="11">flip + shift</text>
+
+        <!-- step 3a preset -->
+        <rect x="450" y="20" width="170" height="60" rx="10" fill="#ffffff" stroke="#d6e2f3"/>
+        <text x="535" y="44" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">③a 点预设按钮</text>
+        <text x="535" y="62" text-anchor="middle" fill="#4a5b7a" font-size="11">REWRITE_PRESET 事件</text>
+
+        <!-- step 3b custom -->
+        <rect x="450" y="100" width="170" height="60" rx="10" fill="#ffffff" stroke="#06b6d4"/>
+        <text x="535" y="124" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">③b 按住麦克风</text>
+        <text x="535" y="142" text-anchor="middle" fill="#06b6d4" font-size="11">录指令 → ASR</text>
+
+        <!-- step 4 LLM rewrite -->
+        <rect x="660" y="60" width="180" height="80" rx="10" fill="#ffffff" stroke="#1d4ed8" stroke-width="1.5"/>
+        <text x="750" y="86" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">④ LLM rewrite</text>
+        <text x="750" y="106" text-anchor="middle" fill="#1d4ed8" font-size="11">rewrite.v1 prompt</text>
+        <text x="750" y="122" text-anchor="middle" fill="#1d4ed8" font-size="11">SSE 流式</text>
+
+        <!-- step 5 -->
+        <rect x="660" y="190" width="180" height="80" rx="10" fill="#ecfdf5" stroke="#059669"/>
+        <text x="750" y="216" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">⑤ 替换选区</text>
+        <text x="750" y="236" text-anchor="middle" fill="#059669" font-size="11">execCommand insertText</text>
+        <text x="750" y="252" text-anchor="middle" fill="#059669" font-size="11">保留 undo stack</text>
+
+        <!-- step 6 -->
+        <rect x="220" y="200" width="380" height="80" rx="10" fill="#fffbeb" stroke="#d97706"/>
+        <text x="410" y="226" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">⑥ 实时可视反馈</text>
+        <text x="410" y="246" text-anchor="middle" fill="#92400e" font-size="11">选区背景 cyan 流光 · token 到达逐字 replace</text>
+        <text x="410" y="262" text-anchor="middle" fill="#92400e" font-size="11">失败时红色 outline + sonner toast</text>
+
+        <!-- arrows -->
+        <g stroke="#1d4ed8" stroke-width="1.4" fill="none" marker-end="url(#arrR)">
+          <path d="M200 90 L240 90"/>
+          <path d="M410 80 L450 50"/>
+          <path d="M410 100 L450 130"/>
+          <path d="M620 50 L660 80"/>
+          <path d="M620 130 L660 120"/>
+          <path d="M750 140 L750 188"/>
+        </g>
+      </svg>
+      <div class="caption">图 5 · 框选改写：① 选区 → ② 浮层 → ③ 预设/自定义 → ④ LLM → ⑤ 替换。⑥ 是贯穿全程的可视反馈层。</div>
+    </div>
+
+    <h4>9.2 · 语音翻译交互流</h4>
+    <div class="diagram">
+      <svg viewBox="0 0 980 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Voice translate flow">
+        <defs>
+          <marker id="arrT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#059669"/>
+          </marker>
+        </defs>
+
+        <rect x="40" y="40" width="160" height="76" rx="10" fill="#ecfdf5" stroke="#059669"/>
+        <text x="120" y="66" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">① 开启翻译模式</text>
+        <text x="120" y="86" text-anchor="middle" fill="#059669" font-size="11">⌘⇧T · 或顶部 toggle</text>
+        <text x="120" y="102" text-anchor="middle" fill="#059669" font-size="11">选目标语言</text>
+
+        <rect x="240" y="40" width="160" height="76" rx="10" fill="#ffffff" stroke="#1d4ed8"/>
+        <text x="320" y="66" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">② 按住录音</text>
+        <text x="320" y="86" text-anchor="middle" fill="#1d4ed8" font-size="11">Space</text>
+        <text x="320" y="102" text-anchor="middle" fill="#1d4ed8" font-size="11">VAD 自动截</text>
+
+        <rect x="440" y="40" width="160" height="76" rx="10" fill="#ffffff" stroke="#06b6d4"/>
+        <text x="520" y="66" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">③ ASR 转写</text>
+        <text x="520" y="86" text-anchor="middle" fill="#06b6d4" font-size="11">whisper auto detect</text>
+        <text x="520" y="102" text-anchor="middle" fill="#06b6d4" font-size="11">→ text + language</text>
+
+        <rect x="640" y="40" width="160" height="76" rx="10" fill="#ffffff" stroke="#1d4ed8"/>
+        <text x="720" y="66" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">④ LLM 翻译</text>
+        <text x="720" y="86" text-anchor="middle" fill="#1d4ed8" font-size="11">translate.v1 prompt</text>
+        <text x="720" y="102" text-anchor="middle" fill="#1d4ed8" font-size="11">→ {{target_lang}}</text>
+
+        <rect x="240" y="170" width="380" height="76" rx="10" fill="#ecfdf5" stroke="#059669"/>
+        <text x="430" y="196" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">⑤ 注入译文 + 双列展示</text>
+        <text x="430" y="216" text-anchor="middle" fill="#059669" font-size="11">DemoSurface 追加译文 + Clipboard</text>
+        <text x="430" y="232" text-anchor="middle" fill="#059669" font-size="11">ResultPanel 显示 RAW 原文 + TRANSLATED 译文</text>
+
+        <rect x="660" y="170" width="160" height="76" rx="10" fill="#fffbeb" stroke="#d97706"/>
+        <text x="740" y="196" text-anchor="middle" fill="#0f1e3a" font-size="12" font-weight="600">⑥ 再来一种语言</text>
+        <text x="740" y="216" text-anchor="middle" fill="#92400e" font-size="11">底部气泡 · 切语言</text>
+        <text x="740" y="232" text-anchor="middle" fill="#92400e" font-size="11">仅重跑 ④（不重新录音）</text>
+
+        <g stroke="#059669" stroke-width="1.4" fill="none" marker-end="url(#arrT)">
+          <path d="M200 78 L240 78"/>
+          <path d="M400 78 L440 78"/>
+          <path d="M600 78 L640 78"/>
+          <path d="M720 116 L430 168"/>
+          <path d="M720 116 L740 168"/>
+        </g>
+      </svg>
+      <div class="caption">图 6 · 语音翻译：⑥ 是亮点 — 复用 ④ 的 raw 文本，仅切语言重跑翻译，无需重录。</div>
+    </div>
+  </section>
+
+  <!-- ========== 10. Roadmap ========== -->
+  <section id="s-roadmap">
+    <h2><span class="num">§10</span>实施路线</h2>
+    <h3 class="title">4 个 Phase · ~4 周单人工时 · 进度可勾选</h3>
+
+    <div class="diagram">
+      <svg viewBox="0 0 980 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Phase timeline">
+        <line x1="40" y1="100" x2="940" y2="100" stroke="#d6e2f3" stroke-width="2"/>
+
+        <circle cx="80" cy="100" r="14" fill="#1d4ed8"/>
+        <text x="80" y="105" text-anchor="middle" fill="white" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">0</text>
+        <text x="80" y="60" text-anchor="middle" fill="#1d4ed8" font-family="Inter, sans-serif" font-size="12" font-weight="600">仓库重建</text>
+        <text x="80" y="78" text-anchor="middle" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="10">0.5d · P0</text>
+        <text x="80" y="146" text-anchor="middle" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11">脚手架 + proxy</text>
+
+        <rect x="140" y="86" width="220" height="28" rx="14" fill="url(#grad1)"/>
+        <text x="250" y="105" text-anchor="middle" fill="white" font-family="Inter, sans-serif" font-size="12" font-weight="600">Phase 1 · MVP 端到端</text>
+        <text x="250" y="60" text-anchor="middle" fill="#1d4ed8" font-family="Inter, sans-serif" font-size="12" font-weight="600">Week 1</text>
+        <text x="250" y="78" text-anchor="middle" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="10">5–7d · P0</text>
+        <text x="250" y="146" text-anchor="middle" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11">录音 → ASR → 润色 → 注入</text>
+
+        <rect x="380" y="86" width="320" height="28" rx="14" fill="#06b6d4" opacity="0.9"/>
+        <text x="540" y="105" text-anchor="middle" fill="white" font-family="Inter, sans-serif" font-size="12" font-weight="600">Phase 2 · 完整功能 + 框选改写 + 翻译</text>
+        <text x="540" y="60" text-anchor="middle" fill="#06b6d4" font-family="Inter, sans-serif" font-size="12" font-weight="600">Week 2–3</text>
+        <text x="540" y="78" text-anchor="middle" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="10">10–14d · P1</text>
+        <text x="540" y="146" text-anchor="middle" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11">VAD · 词典 · 历史 · D + J 类 · 学习</text>
+
+        <rect x="720" y="86" width="140" height="28" rx="14" fill="#ffffff" stroke="#06b6d4"/>
+        <text x="790" y="105" text-anchor="middle" fill="#06b6d4" font-family="Inter, sans-serif" font-size="12" font-weight="600">Phase 3 · 本地模型</text>
+        <text x="790" y="60" text-anchor="middle" fill="#06b6d4" font-family="Inter, sans-serif" font-size="12" font-weight="600">Week 4</text>
+        <text x="790" y="78" text-anchor="middle" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="10">3–5d · P2</text>
+        <text x="790" y="146" text-anchor="middle" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11">transformers.js + Ollama</text>
+
+        <circle cx="900" cy="100" r="14" fill="#059669"/>
+        <text x="900" y="105" text-anchor="middle" fill="white" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700">4</text>
+        <text x="900" y="60" text-anchor="middle" fill="#059669" font-family="Inter, sans-serif" font-size="12" font-weight="600">产品化</text>
+        <text x="900" y="78" text-anchor="middle" fill="#4a5b7a" font-family="JetBrains Mono, monospace" font-size="10">持续 · P2</text>
+        <text x="900" y="146" text-anchor="middle" fill="#4a5b7a" font-family="Inter, sans-serif" font-size="11">onboarding · PWA</text>
+      </svg>
+      <div class="caption">图 7 · 实施时间线：Phase 2 含原有 14 项 TODO + 框选改写 6 项 + 翻译 6 项 = 26 项。</div>
+    </div>
+
+    <!-- ===== Phase 0 ===== -->
+    <div class="phase" data-phase="0">
+      <div class="phase-head" onclick="togglePhase(this)">
+        <div>
+          <h4><span style="color:var(--accent)">Phase 0</span> · 仓库重建</h4>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+        <span class="meta">0.5 day · P0</span>
+      </div>
+      <div class="phase-body">
+        <ul class="todo">
+          <li><input type="checkbox" data-id="0.1"><div class="todo-body"><b>0.1</b> 在 <code>typeless_reproduce/</code> 初始化空仓 · <code>git init</code> · 写 <code>.gitignore</code></div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="0.2"><div class="todo-body"><b>0.2</b> <code>pnpm create vite@latest . -- --template react-ts</code></div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="0.3"><div class="todo-body"><b>0.3</b> 装 Tailwind v3 · <code>pnpm add -D tailwindcss postcss autoprefixer</code> · <code>pnpm dlx tailwindcss init -p</code></div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="0.4"><div class="todo-body"><b>0.4</b> <code>pnpm dlx shadcn@latest init</code> · add button input dialog select textarea card tabs switch badge scroll-area sonner popover tooltip</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="0.5"><div class="todo-body"><b>0.5</b> 业务依赖：<code>pnpm add zustand xstate @xstate/react lucide-react localforage onnxruntime-web @huggingface/transformers react-hotkeys-hook react-markdown i18next react-i18next @floating-ui/react</code></div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="0.6"><div class="todo-body"><b>0.6</b> 写 <code>vite.config.ts</code> · 6 条 proxy 路由 · 详见 §11.1</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="0.7"><div class="todo-body"><b>0.7</b> 写 <code>README.md</code>：起步命令 · 申请 key 链接</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="0.8"><div class="todo-body"><b>0.8</b> 提交首次 commit · 跑 <code>pnpm dev</code> 验证空白 React 起来</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===== Phase 1 ===== -->
+    <div class="phase" data-phase="1">
+      <div class="phase-head" onclick="togglePhase(this)">
+        <div>
+          <h4><span style="color:var(--accent)">Phase 1</span> · MVP 端到端</h4>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+        <span class="meta">5–7 days · P0</span>
+      </div>
+      <div class="phase-body">
+        <div class="callout">
+          <strong>完成定义：</strong>本地起 dev → 浏览器按住空格录音 → 松开后 3 秒内"模拟目标应用"出现润色后的文字 + 系统剪贴板已写入；原始 ASR 与润色结果并列展示。
+        </div>
+        <ul class="todo">
+          <li><input type="checkbox" data-id="1.1"><div class="todo-body"><b>1.1 状态机骨架</b> · <code>src/machine/typeless.machine.ts</code> · 5 态 + mode 字段（dictate/rewrite/translate）· §04 代码</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.2"><div class="todo-body"><b>1.2 录音 hook</b> · <code>useRecorder.ts</code> · 16k mono · AudioWorklet</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.3"><div class="todo-body"><b>1.3 波形组件</b> · <code>Waveform.tsx</code> · 32 频段</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.4"><div class="todo-body"><b>1.4 热键</b> · <code>useHotkey.ts</code> · push-to-talk + toggle</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.5"><div class="todo-body"><b>1.5 云 ASR 客户端</b> · Float32 → WAV · multipart POST <code>/api/asr/groq</code></div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.6"><div class="todo-body"><b>1.6 LLM 客户端</b> · OpenAI 兼容 · SSE 流式</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.7"><div class="todo-body"><b>1.7 润色 prompt v1</b> · <code>polish.v1.ts</code> · §12 全文</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.8"><div class="todo-body"><b>1.8 主 UI 骨架</b> · 顶部状态条 + DemoSurface + ResultPanel + 设置按钮</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.9"><div class="todo-body"><b>1.9 注入 hook</b> · append 到 DemoSurface + clipboard</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.10"><div class="todo-body"><b>1.10 配置 store</b> · Zustand + persist · hotkey / endpoints / keys</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.11"><div class="todo-body"><b>1.11 设置面板</b> · endpoint 列表 + key 输入 + 连通测试</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.12"><div class="todo-body"><b>1.12 错误处理</b> · 麦克风权限 / 网络 / key / 模型未下载 → toast + 回 Idle</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+          <li><input type="checkbox" data-id="1.13"><div class="todo-body"><b>1.13 端到端冒烟</b> · 录 5s 中文 / 英文 / 混合</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p0">P0</span></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===== Phase 2 ===== -->
+    <div class="phase" data-phase="2">
+      <div class="phase-head" onclick="togglePhase(this)">
+        <div>
+          <h4><span style="color:var(--accent-2)">Phase 2</span> · 完整功能 + 框选改写 + 翻译</h4>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+        <span class="meta">10–14 days · P1</span>
+      </div>
+      <div class="phase-body">
+        <h5 style="margin-top:8px; color:var(--accent);">基础功能（沿用 v0.1）</h5>
+        <ul class="todo">
+          <li><input type="checkbox" data-id="2.1"><div class="todo-body"><b>2.1 VAD 自动截断</b> · <code>vad.worker.ts</code> · ort-web + silero · 600ms 静音</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.2"><div class="todo-body"><b>2.2 AppContextSwitcher</b> · Email/Slack/WeChat/Code/Notes/Casual</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.3"><div class="todo-body"><b>2.3 应用规则表</b> · <code>app-rules.ts</code></div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.4"><div class="todo-body"><b>2.4 Markdown 模式</b> · react-markdown 渲染</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.5"><div class="todo-body"><b>2.5 流式渲染</b> · SSE token → ResultPanel 逐字</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.6"><div class="todo-body"><b>2.6 用户词典</b> · DictionaryEditor · JSON 导入导出</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.7"><div class="todo-body"><b>2.7 历史会话</b> · localforage 200 条 · 含 mode 字段</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.10"><div class="todo-body"><b>2.10 被动学习</b> · 30s 内 textarea diff → edits 表</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.11"><div class="todo-body"><b>2.11 多 endpoint UI</b> · ModelManager · 自定义 endpoint</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.12"><div class="todo-body"><b>2.12 ASR backend 切换</b> · Groq / OpenAI / SiliconFlow / 阿里</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.13"><div class="todo-body"><b>2.13 离线模式 toggle</b></div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.14"><div class="todo-body"><b>2.14 深色模式 toggle</b> · 浅色蓝色科技风为默认</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span></div></li>
+          <li><input type="checkbox" data-id="2.15"><div class="todo-body"><b>2.15 i18n</b> · 中 / 英 字典</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span></div></li>
+        </ul>
+
+        <h5 style="margin-top:24px; color:var(--ok);">D · 框选改写（v0.2 新增）<span class="chip-new">NEW</span></h5>
+        <ul class="todo">
+          <li><input type="checkbox" data-id="2.16"><div class="todo-body"><b>2.16 选区监听 hook</b> · <code>useTextareaSelection.ts</code> · 监听 textarea onSelect/keyup/mouseup · 返回 {start, end, text, rect}</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.17"><div class="todo-body"><b>2.17 SelectionPopover 组件</b> · 用 <code>@floating-ui/react</code> 跟随选区底部出现 · 含 6 预设按钮 + 麦克风按钮 + 关闭</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.18"><div class="todo-body"><b>2.18 rewrite prompt v1</b> · <code>rewrite.v1.ts</code> · §12.2 · 输入：selection + preset 或 instruction + ctx · 输出仅替换文本</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.19"><div class="todo-body"><b>2.19 状态机 rewrite 分支</b> · REWRITE_PRESET 事件直跳 polishing · mode='rewrite' · invoke polish actor 切到 <code>llm.rewrite()</code></div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.20"><div class="todo-body"><b>2.20 流式替换 + 高亮</b> · 选区背景流光 cyan · SSE token 逐字 replaceSelection · 用 <code>document.execCommand('insertText')</code> 保 undo stack</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.21"><div class="todo-body"><b>2.21 自定义指令录制</b> · 麦克风按钮按住 → 内嵌 mini-recorder（不弹波形浮层）→ ASR → 把指令传给 rewrite prompt</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+        </ul>
+
+        <h5 style="margin-top:24px; color:var(--ok);">J · 语音翻译（v0.2 新增）<span class="chip-new">NEW</span></h5>
+        <ul class="todo">
+          <li><input type="checkbox" data-id="2.22"><div class="todo-body"><b>2.22 语言常量与配置</b> · <code>lib/i18n/languages.ts</code> · 10 种目标语言 + 自动 · 存 zustand config.translate.targetLang</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.23"><div class="todo-body"><b>2.23 TranslateBar 组件</b> · 顶部条 · 模式 toggle + 语言下拉（shadcn select）+ 热键提示 ⌘⇧T</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.24"><div class="todo-body"><b>2.24 translate prompt v1</b> · <code>translate.v1.ts</code> · §12.3 · 输入：raw + target_lang + dictionary · 仅输出译文</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.25"><div class="todo-body"><b>2.25 状态机 translate 分支</b> · HOTKEY_DOWN {mode:'translate'} · polish actor 切到 <code>llm.translate()</code></div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.26"><div class="todo-body"><b>2.26 ResultPanel 双列</b> · 翻译模式下显示 RAW + TRANSLATED 两栏 · 各自复制按钮</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.27"><div class="todo-body"><b>2.27 "再来一种语言"</b> · 注入后浮层气泡 · 切语言 → 复用 raw 重跑 translate（不重录）</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+          <li><input type="checkbox" data-id="2.28"><div class="todo-body"><b>2.28 选区翻译入口</b> · SelectionPopover "🌐 译" 按钮 → 走 rewrite 分支但 prompt 用 translate.v1 · 复用 D 路径</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p1">P1</span><span class="tag new">NEW</span></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===== Phase 3 ===== -->
+    <div class="phase" data-phase="3">
+      <div class="phase-head" onclick="togglePhase(this)">
+        <div>
+          <h4><span style="color:var(--accent-2)">Phase 3</span> · 本地模型选配</h4>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+        <span class="meta">3–5 days · P2</span>
+      </div>
+      <div class="phase-body">
+        <ul class="todo">
+          <li><input type="checkbox" data-id="3.1"><div class="todo-body"><b>3.1 transformers.js whisper</b> · <code>asr.worker.ts</code> · WebGPU 优先</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="3.2"><div class="todo-body"><b>3.2 本地 ASR 路径接通</b> · <code>local-transformers.ts</code></div><div class="todo-meta"><span class="tag size">S</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="3.3"><div class="todo-body"><b>3.3 本地模型管理 UI</b> · 下载进度条 · q4/q8 量化</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="3.4"><div class="todo-body"><b>3.4 Ollama 本地 LLM</b> · <code>/api/llm/ollama</code> · qwen3:4b 默认</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="3.5"><div class="todo-body"><b>3.5 本地翻译路径冒烟</b> · 关网 · 翻译模式 · Ollama 跑 translate prompt</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p2">P2</span></div></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- ===== Phase 4 ===== -->
+    <div class="phase" data-phase="4">
+      <div class="phase-head" onclick="togglePhase(this)">
+        <div>
+          <h4><span style="color:var(--ok)">Phase 4</span> · 产品化打磨</h4>
+          <div class="progress-track"><div class="progress-fill"></div></div>
+        </div>
+        <span class="meta">持续 · P2</span>
+      </div>
+      <div class="phase-body">
+        <ul class="todo">
+          <li><input type="checkbox" data-id="4.1"><div class="todo-body"><b>4.1 onboarding</b> · 首次引导 · 含两个新模式的演示步骤</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="4.2"><div class="todo-body"><b>4.2 API key 申请文档</b> · DeepSeek / MiMo / Groq</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="4.3"><div class="todo-body"><b>4.3 web 搜索增强</b> · LLM tool calling</div><div class="todo-meta"><span class="tag size">M</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="4.4"><div class="todo-body"><b>4.4 静态部署</b> · Vercel/Cloudflare Pages</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="4.5"><div class="todo-body"><b>4.5 PWA</b> · vite-plugin-pwa</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p2">P2</span></div></li>
+          <li><input type="checkbox" data-id="4.6"><div class="todo-body"><b>4.6 演示视频 + GIF</b> · 嵌到 README · 涵盖三种模式</div><div class="todo-meta"><span class="tag size">S</span><span class="tag p2">P2</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 11. Modules ========== -->
+  <section id="s-modules">
+    <h2><span class="num">§11</span>关键模块设计</h2>
+    <h3 class="title">每个模块单文件 · 接口与实现分离 · TS 严格类型</h3>
+
+    <h4>11.1 · Vite 配置（CORS 核心）</h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">vite.config.ts</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-k">import</span> { defineConfig } <span class="tok-k">from</span> <span class="tok-s">'vite'</span>;
+<span class="tok-k">import</span> react <span class="tok-k">from</span> <span class="tok-s">'@vitejs/plugin-react'</span>;
+<span class="tok-k">import</span> path <span class="tok-k">from</span> <span class="tok-s">'node:path'</span>;
+
+<span class="tok-k">export default</span> <span class="tok-f">defineConfig</span>({
+  plugins: [<span class="tok-f">react</span>()],
+  resolve: { alias: { <span class="tok-s">'@'</span>: path.<span class="tok-f">resolve</span>(__dirname, <span class="tok-s">'src'</span>) } },
+  worker: { format: <span class="tok-s">'es'</span> },
+  server: {
+    proxy: {
+      <span class="tok-s">'/api/asr/groq'</span>:        { target: <span class="tok-s">'https://api.groq.com'</span>,                changeOrigin: <span class="tok-k">true</span>, rewrite: (p) =&gt; p.<span class="tok-f">replace</span>(/^\/api\/asr\/groq/, <span class="tok-s">'/openai'</span>) },
+      <span class="tok-s">'/api/asr/openai'</span>:      { target: <span class="tok-s">'https://api.openai.com'</span>,              changeOrigin: <span class="tok-k">true</span>, rewrite: (p) =&gt; p.<span class="tok-f">replace</span>(/^\/api\/asr\/openai/, <span class="tok-s">''</span>) },
+      <span class="tok-s">'/api/asr/siliconflow'</span>: { target: <span class="tok-s">'https://api.siliconflow.cn'</span>,         changeOrigin: <span class="tok-k">true</span>, rewrite: (p) =&gt; p.<span class="tok-f">replace</span>(/^\/api\/asr\/siliconflow/, <span class="tok-s">''</span>) },
+      <span class="tok-s">'/api/llm/deepseek'</span>:    { target: <span class="tok-s">'https://api.deepseek.com'</span>,            changeOrigin: <span class="tok-k">true</span>, rewrite: (p) =&gt; p.<span class="tok-f">replace</span>(/^\/api\/llm\/deepseek/, <span class="tok-s">''</span>) },
+      <span class="tok-s">'/api/llm/mimo'</span>:        { target: <span class="tok-s">'https://token-plan-cn.xiaomimimo.com'</span>, changeOrigin: <span class="tok-k">true</span>, rewrite: (p) =&gt; p.<span class="tok-f">replace</span>(/^\/api\/llm\/mimo/, <span class="tok-s">''</span>) },
+      <span class="tok-s">'/api/llm/ollama'</span>:      { target: <span class="tok-s">'http://127.0.0.1:11434'</span>,            changeOrigin: <span class="tok-k">true</span>, rewrite: (p) =&gt; p.<span class="tok-f">replace</span>(/^\/api\/llm\/ollama/, <span class="tok-s">''</span>) },
+    },
+  },
+  optimizeDeps: { exclude: [<span class="tok-s">'onnxruntime-web'</span>, <span class="tok-s">'@huggingface/transformers'</span>] },
+});</code></pre>
+    </div>
+
+    <h4>11.2 · LLM 客户端（三模式统一）</h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">src/lib/llm/index.ts</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-k">export const</span> llm = {
+  <span class="tok-k">async</span> <span class="tok-f">polish</span>(raw: <span class="tok-t">string</span>, ctx: PolishCtx): Promise&lt;<span class="tok-t">string</span>&gt; {
+    <span class="tok-k">const</span> sys = <span class="tok-f">renderPolishPrompt</span>(ctx);
+    <span class="tok-k">return</span> <span class="tok-f">collect</span>(<span class="tok-f">chatStream</span>([{ role: <span class="tok-s">'system'</span>, content: sys }, { role: <span class="tok-s">'user'</span>, content: raw }], ctx.opts));
+  },
+  <span class="tok-k">async</span> <span class="tok-f">rewrite</span>(selection: <span class="tok-t">string</span>, instruction: <span class="tok-t">string</span> | RewritePreset, ctx: RewriteCtx): Promise&lt;<span class="tok-t">string</span>&gt; {
+    <span class="tok-k">const</span> sys = <span class="tok-f">renderRewritePrompt</span>(ctx);
+    <span class="tok-k">const</span> usr = <span class="tok-s">`SELECTION:\n${selection}\n\nINSTRUCTION:\n${typeof instruction === 'string' ? instruction : presetMap[instruction]}`</span>;
+    <span class="tok-k">return</span> <span class="tok-f">collect</span>(<span class="tok-f">chatStream</span>([{ role: <span class="tok-s">'system'</span>, content: sys }, { role: <span class="tok-s">'user'</span>, content: usr }], ctx.opts));
+  },
+  <span class="tok-k">async</span> <span class="tok-f">translate</span>(raw: <span class="tok-t">string</span>, targetLang: <span class="tok-t">string</span>, ctx: TranslateCtx): Promise&lt;<span class="tok-t">string</span>&gt; {
+    <span class="tok-k">const</span> sys = <span class="tok-f">renderTranslatePrompt</span>({ ...ctx, targetLang });
+    <span class="tok-k">return</span> <span class="tok-f">collect</span>(<span class="tok-f">chatStream</span>([{ role: <span class="tok-s">'system'</span>, content: sys }, { role: <span class="tok-s">'user'</span>, content: raw }], ctx.opts));
+  },
+};</code></pre>
+    </div>
+
+    <h4>11.3 · 选区监听 hook <span class="chip-new">NEW</span></h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">src/hooks/useTextareaSelection.ts</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-k">export interface</span> Selection {
+  start: <span class="tok-t">number</span>; end: <span class="tok-t">number</span>; text: <span class="tok-t">string</span>;
+  rect: DOMRect | <span class="tok-k">null</span>;   <span class="tok-c">// 选区末端的 caret 位置，用于 floating-ui 锚点</span>
+}
+
+<span class="tok-k">export function</span> <span class="tok-f">useTextareaSelection</span>(ref: RefObject&lt;HTMLTextAreaElement&gt;): Selection | <span class="tok-k">null</span> {
+  <span class="tok-k">const</span> [sel, setSel] = <span class="tok-f">useState</span>&lt;Selection | <span class="tok-k">null</span>&gt;(<span class="tok-k">null</span>);
+  <span class="tok-f">useEffect</span>(() =&gt; {
+    <span class="tok-k">const</span> el = ref.current; <span class="tok-k">if</span> (!el) <span class="tok-k">return</span>;
+    <span class="tok-k">const</span> update = () =&gt; {
+      <span class="tok-k">const</span> { selectionStart, selectionEnd, value } = el;
+      <span class="tok-k">if</span> (selectionEnd - selectionStart &lt; <span class="tok-n">2</span>) <span class="tok-k">return</span> <span class="tok-f">setSel</span>(<span class="tok-k">null</span>);
+      <span class="tok-k">const</span> text = value.<span class="tok-f">slice</span>(selectionStart, selectionEnd);
+      <span class="tok-k">const</span> rect = <span class="tok-f">caretRectInTextarea</span>(el, selectionEnd);   <span class="tok-c">// 用 mirror div 算坐标</span>
+      <span class="tok-f">setSel</span>({ start: selectionStart, end: selectionEnd, text, rect });
+    };
+    el.<span class="tok-f">addEventListener</span>(<span class="tok-s">'select'</span>, update);
+    el.<span class="tok-f">addEventListener</span>(<span class="tok-s">'keyup'</span>, update);
+    el.<span class="tok-f">addEventListener</span>(<span class="tok-s">'mouseup'</span>, update);
+    <span class="tok-k">return</span> () =&gt; {
+      el.<span class="tok-f">removeEventListener</span>(<span class="tok-s">'select'</span>, update);
+      el.<span class="tok-f">removeEventListener</span>(<span class="tok-s">'keyup'</span>, update);
+      el.<span class="tok-f">removeEventListener</span>(<span class="tok-s">'mouseup'</span>, update);
+    };
+  }, [ref]);
+  <span class="tok-k">return</span> sel;
+}</code></pre>
+    </div>
+    <div class="callout">
+      <strong>关键技巧：</strong>textarea 没有原生 API 返回选区的 DOM 坐标。常见解法是<strong>克隆 mirror div</strong>，用同样字体 / 宽度 / 内边距，把 textarea 的前缀文本塞进去，末端插一个 marker span，<code>getBoundingClientRect()</code> 即为光标位置。社区库 <code>textarea-caret</code> 可直接用。
+    </div>
+
+    <h4>11.4 · SelectionPopover 组件 <span class="chip-new">NEW</span></h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">src/components/SelectionPopover.tsx</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-k">import</span> { useFloating, autoUpdate, flip, shift, offset } <span class="tok-k">from</span> <span class="tok-s">'@floating-ui/react'</span>;
+
+<span class="tok-k">const</span> PRESETS = [
+  { id: <span class="tok-s">'formal'</span>,   label: <span class="tok-s">'更正式'</span> },
+  { id: <span class="tok-s">'casual'</span>,   label: <span class="tok-s">'更口语'</span> },
+  { id: <span class="tok-s">'shorten'</span>,  label: <span class="tok-s">'简化'</span>   },
+  { id: <span class="tok-s">'expand'</span>,   label: <span class="tok-s">'扩写'</span>   },
+  { id: <span class="tok-s">'fix-typo'</span>, label: <span class="tok-s">'修错'</span>   },
+  { id: <span class="tok-s">'translate'</span>,label: <span class="tok-s">'🌐 译'</span>  },
+] <span class="tok-k">as const</span>;
+
+<span class="tok-k">export function</span> <span class="tok-f">SelectionPopover</span>({ selection, onPreset, onCustom }: Props) {
+  <span class="tok-k">const</span> { refs, floatingStyles } = <span class="tok-f">useFloating</span>({
+    placement: <span class="tok-s">'bottom-start'</span>,
+    whileElementsMounted: autoUpdate,
+    middleware: [<span class="tok-f">offset</span>(<span class="tok-n">8</span>), <span class="tok-f">flip</span>(), <span class="tok-f">shift</span>({ padding: <span class="tok-n">8</span> })],
+  });
+  <span class="tok-k">if</span> (!selection?.rect) <span class="tok-k">return null</span>;
+  <span class="tok-c">// 用 selection.rect 作为虚拟 reference</span>
+  refs.<span class="tok-f">setReference</span>({ getBoundingClientRect: () =&gt; selection.rect! });
+  <span class="tok-k">return</span> (
+    &lt;div ref={refs.setFloating} style={floatingStyles} className=<span class="tok-s">"sel-popover"</span>&gt;
+      &lt;header&gt;✨ AI 改写选区 &lt;span&gt;{selection.text.length} 字&lt;/span&gt;&lt;/header&gt;
+      &lt;div className=<span class="tok-s">"presets"</span>&gt;
+        {PRESETS.<span class="tok-f">map</span>(p =&gt; &lt;button key={p.id} onClick={() =&gt; <span class="tok-f">onPreset</span>(p.id)}&gt;{p.label}&lt;/button&gt;)}
+      &lt;/div&gt;
+      &lt;MicButton onCommit={onCustom} /&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+    </div>
+
+    <h4>11.5 · 翻译模块 <span class="chip-new">NEW</span></h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">src/lib/i18n/languages.ts · src/hooks/useTranslate.ts</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-c">// src/lib/i18n/languages.ts</span>
+<span class="tok-k">export const</span> TRANSLATE_LANGS = [
+  { code: <span class="tok-s">'auto'</span>, name: <span class="tok-s">'自动'</span>, nativeName: <span class="tok-s">'Auto'</span>     },
+  { code: <span class="tok-s">'en'</span>,   name: <span class="tok-s">'英语'</span>, nativeName: <span class="tok-s">'English'</span>  },
+  { code: <span class="tok-s">'zh'</span>,   name: <span class="tok-s">'中文'</span>, nativeName: <span class="tok-s">'中文'</span>     },
+  { code: <span class="tok-s">'ja'</span>,   name: <span class="tok-s">'日语'</span>, nativeName: <span class="tok-s">'日本語'</span>   },
+  { code: <span class="tok-s">'ko'</span>,   name: <span class="tok-s">'韩语'</span>, nativeName: <span class="tok-s">'한국어'</span>   },
+  { code: <span class="tok-s">'fr'</span>,   name: <span class="tok-s">'法语'</span>, nativeName: <span class="tok-s">'Français'</span> },
+  { code: <span class="tok-s">'es'</span>,   name: <span class="tok-s">'西语'</span>, nativeName: <span class="tok-s">'Español'</span>  },
+  { code: <span class="tok-s">'de'</span>,   name: <span class="tok-s">'德语'</span>, nativeName: <span class="tok-s">'Deutsch'</span>   },
+  { code: <span class="tok-s">'pt'</span>,   name: <span class="tok-s">'葡语'</span>, nativeName: <span class="tok-s">'Português'</span>},
+  { code: <span class="tok-s">'ru'</span>,   name: <span class="tok-s">'俄语'</span>, nativeName: <span class="tok-s">'Русский'</span>  },
+  { code: <span class="tok-s">'ar'</span>,   name: <span class="tok-s">'阿语'</span>, nativeName: <span class="tok-s">'العربية'</span> },
+] <span class="tok-k">as const</span>;
+
+<span class="tok-c">// src/hooks/useTranslate.ts</span>
+<span class="tok-k">export function</span> <span class="tok-f">useTranslate</span>() {
+  <span class="tok-k">const</span> { targetLang } = <span class="tok-f">useConfig</span>(s =&gt; s.translate);
+  <span class="tok-k">const</span> send = <span class="tok-f">useMachine</span>(typelessMachine).<span class="tok-n">1</span>;
+  <span class="tok-k">return</span> {
+    <span class="tok-f">trigger</span>: () =&gt; <span class="tok-f">send</span>({ type: <span class="tok-s">'HOTKEY_DOWN'</span>, mode: <span class="tok-s">'translate'</span> }),
+    <span class="tok-f">retranslate</span>: (raw: <span class="tok-t">string</span>, newLang: <span class="tok-t">string</span>) =&gt;
+      llm.<span class="tok-f">translate</span>(raw, newLang, currentCtx()),    <span class="tok-c">// "再来一种语言" 直跑，不重录</span>
+  };
+}</code></pre>
+    </div>
+  </section>
+
+  <!-- ========== 12. Prompts ========== -->
+  <section id="s-prompt">
+    <h2><span class="num">§12</span>Prompt 设计</h2>
+    <h3 class="title">三套 system prompt · 共享上下文片段</h3>
+
+    <h4>12.1 · 润色 prompt（dictate 模式）</h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">src/lib/llm/prompts/polish.v1.ts</span><button class="copy-btn">复制</button></div>
+<pre><code>You are Typeless, an AI voice dictation assistant. Polish the user's raw
+speech-to-text transcript into clean written text following these rules:
+
+1. REMOVE filler words (um, uh, like, 嗯, 啊, 那个, 就是, 然后, repeated stutters).
+2. RESOLVE self-corrections: keep only the user's final intent.
+3. ADD punctuation, capitalization, paragraph breaks where natural.
+4. PRESERVE the user's language. Mixed languages stay mixed. Do NOT translate.
+5. PRESERVE meaning. Do NOT add/omit/rephrase ideas. Do NOT answer.
+6. If user dictates a list ("first... second..."), format as numbered list.
+7. Adapt tone to target app: {{tone}} ({{formality}}).
+8. User dictionary (prefer these spellings): {{dictionary_terms}}.
+9. {{#if markdown}}Output Markdown.{{else}}Output plain text.{{/if}}
+10. Output ONLY the polished text. No preamble.</code></pre>
+    </div>
+
+    <h4>12.2 · 改写 prompt（rewrite 模式）<span class="chip-new">NEW</span></h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">src/lib/llm/prompts/rewrite.v1.ts</span><button class="copy-btn">复制</button></div>
+<pre><code>You are an AI text editor. The user has selected a piece of text and wants
+you to rewrite it according to their instruction.
+
+Rules:
+1. Output ONLY the rewritten text. No preamble, no quotes, no commentary.
+2. PRESERVE the user's language (do not translate unless instruction says so).
+3. Match the surrounding context tone: {{app_context.tone}} ({{formality}}).
+4. Keep proper nouns and dictionary terms intact: {{dictionary_terms}}.
+5. If the instruction is ambiguous, make minimal changes preserving intent.
+6. Length: similar to original unless instruction explicitly says shorten/expand.
+
+Preset mapping (if INSTRUCTION matches a preset id):
+- formal:   Rewrite in a more professional, formal register.
+- casual:   Rewrite in a more conversational, friendly tone.
+- shorten:  Express the same idea in roughly half the length.
+- expand:   Add specific details, examples, or clarifications.
+- fix-typo: Fix spelling and grammar errors, preserve meaning and style.
+- translate: Translate to {{target_lang}}. (See translate.v1 for full rules.)
+
+User message format:
+SELECTION:
+{{ the selected text }}
+
+INSTRUCTION:
+{{ preset id OR free-text instruction from voice }}</code></pre>
+    </div>
+
+    <h4>12.3 · 翻译 prompt（translate 模式）<span class="chip-new">NEW</span></h4>
+    <div class="code-block">
+      <div class="head"><span class="tag">src/lib/llm/prompts/translate.v1.ts</span><button class="copy-btn">复制</button></div>
+<pre><code>You are an AI translator. Translate the user's text to {{target_lang_name}}
+(ISO code: {{target_lang}}).
+
+Rules:
+1. Output ONLY the translation. No preamble, no romanization, no notes.
+2. Preserve meaning, tone, formatting (lists, line breaks, markdown if present).
+3. Apply user dictionary for proper nouns and product names: {{dictionary_terms}}.
+4. Keep numbers, code blocks, URLs, @mentions verbatim.
+5. If the source text is ALREADY in {{target_lang_name}}, return it unchanged.
+6. If source contains mixed languages, translate the non-{{target_lang_name}} portions only.
+7. Adapt register to: {{app_context.formality}} ({{app_context.tone}}).
+8. For target_lang='auto', detect the source language and translate to:
+   - Chinese if source is non-Chinese
+   - English if source is Chinese
+9. For RTL languages (ar, he), output in proper RTL direction.
+
+Examples:
+- Source (zh): "你好，今天天气不错"  →  "Hello, the weather is nice today."
+- Source (en): "Could you send the report by Friday?"  →  "你能在周五前把报告发过来吗？"</code></pre>
+    </div>
+  </section>
+
+  <!-- ========== 13. Risks ========== -->
+  <section id="s-risk">
+    <h2><span class="num">§13</span>风险与对策</h2>
+    <h3 class="title">已知边界 · 提前应对</h3>
+
+    <table>
+      <thead><tr><th>风险</th><th>概率</th><th>影响</th><th>对策</th></tr></thead>
+      <tbody>
+        <tr><td>浏览器无法注入其他应用</td><td>必然</td><td>中</td><td>用页面内演示区 + 系统剪贴板替代；UI 明示</td></tr>
+        <tr><td>Groq/DeepSeek API CORS</td><td>必然</td><td>高</td><td>Vite dev proxy 解决；生产期改 Cloudflare Worker</td></tr>
+        <tr><td>API key 暴露于浏览器</td><td>必然</td><td>中</td><td>localStorage 显眼警告 + "demo only" 标识</td></tr>
+        <tr><td>textarea 选区坐标计算抖动</td><td>中</td><td>中</td><td>mirror div 法 + ResizeObserver；用 textarea-caret 库</td></tr>
+        <tr><td>翻译目标语言下拉过多用户难选</td><td>低</td><td>低</td><td>设置面板加"常用语言"4 个 pin；其余在更多里</td></tr>
+        <tr><td>SSE 流式中途断开</td><td>中</td><td>中</td><td>带 retry 1 次；超时回 Idle + toast</td></tr>
+        <tr><td>transformers.js 首次下载 200MB+</td><td>高</td><td>中</td><td>进度条 + 缓存提示；MVP 不依赖本地</td></tr>
+        <tr><td>Safari WebGPU 支持差</td><td>中</td><td>中</td><td>onnxruntime-web 自动退到 WASM</td></tr>
+        <tr><td>MediaRecorder 采样率不一定 16k</td><td>高</td><td>低</td><td>AudioContext 显式 <code>sampleRate: 16000</code></td></tr>
+        <tr><td>长录音内存爆</td><td>低</td><td>低</td><td>60s 自动截断 + VAD 主导</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ========== 14. Verify ========== -->
+  <section id="s-verify">
+    <h2><span class="num">§14</span>验证清单</h2>
+    <h3 class="title">三种模式各自的验收用例</h3>
+
+    <div class="card">
+      <h5 style="margin-top:0">A. 听写模式（dictate）</h5>
+      <ul class="todo">
+        <li><input type="checkbox" data-id="v.1"><div class="todo-body"><code>pnpm install &amp;&amp; pnpm dev</code> · 打开 <code>http://localhost:5173</code></div></li>
+        <li><input type="checkbox" data-id="v.2"><div class="todo-body">设置面板填 Groq + DeepSeek key · 连通测试 ✓</div></li>
+        <li><input type="checkbox" data-id="v.3"><div class="todo-body">按住空格说"嗯，今天天气，今天天气不错，我们去公园吧" · 松开 3 秒内 textarea 出现"今天天气不错，我们去公园吧。"</div></li>
+        <li><input type="checkbox" data-id="v.4"><div class="todo-body">右侧 ResultPanel 显示 raw + polished 对比</div></li>
+        <li><input type="checkbox" data-id="v.5"><div class="todo-body">浏览器外应用 Ctrl+V 验证系统剪贴板</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h5 style="margin-top:0">B. 框选改写模式（rewrite）<span class="chip-new">NEW</span></h5>
+      <ul class="todo">
+        <li><input type="checkbox" data-id="v.6"><div class="todo-body">textarea 输入一段口语句，用鼠标选中其中一段（≥2 字）</div></li>
+        <li><input type="checkbox" data-id="v.7"><div class="todo-body">选区下方出现 SelectionPopover 浮层 · 6 按钮 + 麦克风按钮</div></li>
+        <li><input type="checkbox" data-id="v.8"><div class="todo-body">点"更正式" · 1.5s 内选区背景出现 cyan 流光 · 文字逐字替换为更正式版本</div></li>
+        <li><input type="checkbox" data-id="v.9"><div class="todo-body">按 Cmd+Z 撤销 · 选区文字回到原始</div></li>
+        <li><input type="checkbox" data-id="v.10"><div class="todo-body">再次选中 · 按住麦克风说"改成疑问句" · 自动应用</div></li>
+        <li><input type="checkbox" data-id="v.11"><div class="todo-body">点"🌐 译" · 选区翻译为顶部 TranslateBar 的目标语言</div></li>
+        <li><input type="checkbox" data-id="v.12"><div class="todo-body">空选区时浮层消失 · ESC 关闭浮层</div></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h5 style="margin-top:0">C. 语音翻译模式（translate）<span class="chip-new">NEW</span></h5>
+      <ul class="todo">
+        <li><input type="checkbox" data-id="v.13"><div class="todo-body">顶部 TranslateBar 切换为绿色高亮"译为 English ▾"状态</div></li>
+        <li><input type="checkbox" data-id="v.14"><div class="todo-body">按住 Cmd+Shift+T 说"今天天气不错，我们去爬山，第一带水，第二带防晒，第三早点出发"</div></li>
+        <li><input type="checkbox" data-id="v.15"><div class="todo-body">松开后 3s 内 textarea 注入英文翻译 · ResultPanel 显示 RAW 中文 + TRANSLATED 英文双列</div></li>
+        <li><input type="checkbox" data-id="v.16"><div class="todo-body">底部气泡出现"再来一种语言：日本語 / 한국어 / Français…"</div></li>
+        <li><input type="checkbox" data-id="v.17"><div class="todo-body">点 Français · 不重新录音 · 立即输出法语译文（用同一 raw）</div></li>
+        <li><input type="checkbox" data-id="v.18"><div class="todo-body">关闭翻译模式 · 顶部 TranslateBar 灰显 · Cmd+Shift+T 失效</div></li>
+        <li><input type="checkbox" data-id="v.19"><div class="todo-body">拔网 · toast 报"网络不可用"; 状态机回 Idle</div></li>
+      </ul>
+    </div>
+
+    <div class="grid-cards">
+      <div class="card"><h5 style="margin-top:0">⚡ 性能基线</h5><div style="color:var(--tx-sec); font-size:13px;">端到端 5s 录音 · ≤ <b style="color:var(--tx)">2.5s</b><br>框选改写 ≤ <b style="color:var(--tx)">2s</b>（无录音 + 短文本）<br>选区→Popover 出现 ≤ <b style="color:var(--tx)">100ms</b><br>首屏 &lt; <b style="color:var(--tx)">1s</b></div></div>
+      <div class="card"><h5 style="margin-top:0">🧪 单测覆盖</h5><div style="color:var(--tx-sec); font-size:13px;">vitest · 三套 prompt 渲染 · xstate 三模式迁移 · selection rect 计算 · 流式 replaceSelection</div></div>
+      <div class="card"><h5 style="margin-top:0">🎬 E2E（可选 P2）</h5><div style="color:var(--tx-sec); font-size:13px;">Playwright · mock fetch · 录制 wav · 三种模式各 1 条完整断言链</div></div>
+    </div>
+  </section>
+
+  <!-- ========== 15. First commands ========== -->
+  <section id="s-first">
+    <h2><span class="num">§15</span>第一刀命令</h2>
+    <h3 class="title">用户批准后 · 复制粘贴即可执行</h3>
+
+    <div class="callout">工作目录：<code>/home/mingzh/Documents/Workplace/typeless_reproduce/</code></div>
+
+    <div class="code-block">
+      <div class="head"><span class="tag">step 1 · 初始化 Vite + React + TS</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-f">cd</span> /home/mingzh/Documents/Workplace/typeless_reproduce
+<span class="tok-f">git</span> init
+<span class="tok-f">pnpm</span> create vite@latest . -- --template react-ts</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="head"><span class="tag">step 2 · Tailwind + shadcn/ui</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-f">pnpm</span> add -D tailwindcss postcss autoprefixer
+<span class="tok-f">pnpm</span> dlx tailwindcss init -p
+<span class="tok-f">pnpm</span> dlx shadcn@latest init -d
+<span class="tok-f">pnpm</span> dlx shadcn@latest add button input dialog select textarea card tabs switch badge scroll-area sonner popover tooltip</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="head"><span class="tag">step 3 · 业务依赖（含 floating-ui）</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-f">pnpm</span> add zustand xstate @xstate/react lucide-react localforage \
+         onnxruntime-web @huggingface/transformers react-hotkeys-hook \
+         react-markdown i18next react-i18next @floating-ui/react textarea-caret</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="head"><span class="tag">step 4 · 创建目录骨架（含两个新模块）</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-f">mkdir</span> -p src/{components,hooks,machine,workers,lib/{asr,llm/prompts,audio,storage,i18n},styles} \
+          public/models docs
+
+<span class="tok-f">touch</span> vite.config.ts \
+      src/machine/typeless.machine.ts \
+      src/lib/{asr,llm}/types.ts \
+      src/lib/asr/{cloud,index}.ts \
+      src/lib/llm/{client,endpoints,index}.ts \
+      src/lib/llm/prompts/{polish.v1,rewrite.v1,translate.v1,app-rules}.ts \
+      src/lib/i18n/{languages,presets}.ts \
+      src/lib/audio/{pcm,worklet}.ts \
+      src/lib/storage/{config,history,dictionary}.ts \
+      src/hooks/{useRecorder,useHotkey,useAsr,useLlm,useInject,useTextareaSelection,useTranslate}.ts \
+      src/components/{HotkeyHint,Waveform,DemoSurface,ResultPanel,AppContextSwitcher,HistoryList,DictionaryEditor,SettingsDialog,ModelManager,SelectionPopover,TranslateBar}.tsx \
+      src/workers/{vad,asr}.worker.ts</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="head"><span class="tag">step 5 · 启动 dev server</span><button class="copy-btn">复制</button></div>
+<pre><code><span class="tok-c"># 把 §11.1 的 vite.config.ts 内容粘贴进去后</span>
+<span class="tok-f">pnpm</span> dev
+<span class="tok-c"># 打开 http://localhost:5173</span></code></pre>
+    </div>
+
+    <div class="card accent">
+      <h5 style="margin-top:0">📋 实现顺序建议</h5>
+      <div style="color:var(--tx-sec); font-size:13.5px; line-height:1.8;">
+        <b style="color:var(--tx)">Week 1</b> Phase 0 + Phase 1（MVP 听写跑通）<br>
+        <b style="color:var(--tx)">Week 2 前半</b> 2.1-2.7（VAD/词典/历史/上下文/流式）<br>
+        <b style="color:var(--tx)">Week 2 后半</b> 2.16-2.21（<span style="color:var(--ok)">D 类框选改写</span> 一起打通：先选区监听 + Popover UI，再 rewrite prompt + 状态机分支 + 流式替换）<br>
+        <b style="color:var(--tx)">Week 3 前半</b> 2.22-2.28（<span style="color:var(--ok)">J 类语音翻译</span>：语言常量 → TranslateBar → translate prompt → 状态机分支 → 双列 → "再来一种"）<br>
+        <b style="color:var(--tx)">Week 3 后半</b> 2.10-2.15（学习、离线、深色、i18n）<br>
+        <b style="color:var(--tx)">Week 4</b> Phase 3 本地模型 + Phase 4 打磨
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 16. References ========== -->
+  <section id="s-ref">
+    <h2><span class="num">§16</span>参考资源</h2>
+    <h3 class="title">产品原型 · API 文档 · 开源参考</h3>
+
+    <div class="grid-cards">
+      <div class="card">
+        <h5 style="margin-top:0">🎯 产品原型</h5>
+        <ul style="margin:0; padding-left:18px; color:var(--tx-sec); font-size:13px;">
+          <li><a href="https://www.typeless.com" target="_blank">typeless.com</a> · 官网</li>
+          <li><a href="https://typelesscn.cn" target="_blank">typelesscn.cn</a> · 中文站</li>
+          <li><a href="https://github.com/platx-ai/Talk" target="_blank">platx-ai/Talk</a> · macOS 开源参考</li>
+          <li><a href="https://www.opentypeless.com" target="_blank">OpenTypeless</a> · 多 provider 实现</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h5 style="margin-top:0">🧠 LLM / ASR API</h5>
+        <ul style="margin:0; padding-left:18px; color:var(--tx-sec); font-size:13px;">
+          <li><a href="https://api-docs.deepseek.com" target="_blank">DeepSeek API</a></li>
+          <li><a href="https://token-plan-cn.xiaomimimo.com" target="_blank">小米 MiMo Token Plan</a></li>
+          <li><a href="https://console.groq.com/docs/speech-text" target="_blank">Groq Whisper</a></li>
+          <li><a href="https://platform.openai.com/docs/api-reference/audio" target="_blank">OpenAI Whisper</a></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h5 style="margin-top:0">🌐 浏览器侧</h5>
+        <ul style="margin:0; padding-left:18px; color:var(--tx-sec); font-size:13px;">
+          <li><a href="https://huggingface.co/docs/transformers.js" target="_blank">transformers.js v3</a></li>
+          <li><a href="https://github.com/snakers4/silero-vad" target="_blank">silero-vad</a></li>
+          <li><a href="https://floating-ui.com/docs/react" target="_blank">floating-ui/react</a> · Popover 定位</li>
+          <li><a href="https://github.com/component/textarea-caret-position" target="_blank">textarea-caret</a> · 选区坐标</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h5 style="margin-top:0">🛠 框架与工具</h5>
+        <ul style="margin:0; padding-left:18px; color:var(--tx-sec); font-size:13px;">
+          <li><a href="https://vitejs.dev/config/server-options#server-proxy" target="_blank">Vite dev proxy</a></li>
+          <li><a href="https://stately.ai/docs/xstate" target="_blank">xstate v5</a></li>
+          <li><a href="https://ui.shadcn.com" target="_blank">shadcn/ui</a></li>
+          <li><a href="https://zustand-demo.pmnd.rs" target="_blank">Zustand</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Typeless 复刻 · 实施计划 v0.2 · <span class="mono">/home/mingzh/Documents/Workplace/typeless_reproduce/plan.html</span><br>
+    所有勾选状态保存在浏览器 localStorage · 切换文档不丢失
+  </footer>
+
+  </main>
+</div>
+
+<script>
+  const STORE_KEY = 'typeless-plan-progress';
+  const loadProgress = () => { try { return JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch { return {}; } };
+  const saveProgress = (p) => localStorage.setItem(STORE_KEY, JSON.stringify(p));
+
+  function applyProgress() {
+    const p = loadProgress();
+    document.querySelectorAll('input[type="checkbox"][data-id]').forEach(cb => {
+      const id = cb.dataset.id;
+      if (p[id]) {
+        cb.checked = true;
+        cb.closest('li')?.classList.add('done');
+      }
+    });
+    updateAllProgressBars();
+  }
+
+  function updateAllProgressBars() {
+    document.querySelectorAll('.phase').forEach(phase => {
+      const boxes = phase.querySelectorAll('input[type="checkbox"][data-id]');
+      const done = phase.querySelectorAll('input[type="checkbox"][data-id]:checked').length;
+      const total = boxes.length;
+      const fill = phase.querySelector('.progress-fill');
+      if (fill && total > 0) fill.style.width = (done / total * 100).toFixed(1) + '%';
+    });
+  }
+
+  function resetProgress() {
+    if (!confirm('确认重置所有勾选进度？')) return;
+    localStorage.removeItem(STORE_KEY);
+    document.querySelectorAll('input[type="checkbox"][data-id]').forEach(cb => {
+      cb.checked = false;
+      cb.closest('li')?.classList.remove('done');
+    });
+    updateAllProgressBars();
+  }
+
+  document.addEventListener('change', (e) => {
+    const cb = e.target;
+    if (cb.matches?.('input[type="checkbox"][data-id]')) {
+      const p = loadProgress();
+      p[cb.dataset.id] = cb.checked;
+      saveProgress(p);
+      cb.closest('li')?.classList.toggle('done', cb.checked);
+      updateAllProgressBars();
+    }
+  });
+
+  document.querySelectorAll('.code-block').forEach(block => {
+    const btn = block.querySelector('.copy-btn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const code = block.querySelector('pre code')?.innerText || '';
+      try {
+        await navigator.clipboard.writeText(code);
+        const orig = btn.textContent;
+        btn.textContent = '✓ 已复制';
+        btn.classList.add('ok');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 1500);
+      } catch (e) {
+        btn.textContent = '复制失败';
+      }
+    });
+  });
+
+  const tocLinks = Array.from(document.querySelectorAll('aside.toc a'));
+  const sections = tocLinks.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(en => {
+      if (en.isIntersecting) {
+        const id = '#' + en.target.id;
+        tocLinks.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  sections.forEach(s => io.observe(s));
+
+  function togglePhase(headEl) {
+    const body = headEl.nextElementSibling;
+    if (!body) return;
+    body.style.display = body.style.display === 'none' ? '' : 'none';
+  }
+
+  tocLinks.forEach(a => {
+    a.addEventListener('click', (e) => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth' }); }
+    });
+  });
+
+  applyProgress();
+</script>
+
+</body>
+</html>
