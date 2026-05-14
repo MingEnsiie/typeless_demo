@@ -59,7 +59,6 @@ export function SettingsDialog({
                 value={endpoint.apiKey}
                 onChange={(event) => onKey(endpoint.id, event.target.value)}
               />
-              {endpoint.localPath && <span className="endpoint-path">{endpoint.localPath}</span>}
               <button
                 className={(endpoint.kind === 'llm' ? llmEndpointId : asrEndpointId) === endpoint.id ? 'active' : ''}
                 onClick={() => onSelect(endpoint.kind, endpoint.id)}
@@ -69,6 +68,7 @@ export function SettingsDialog({
               <button onClick={() => onTest(endpoint)}>
                 <CheckCircle2 size={14} /> 连通
               </button>
+              {endpoint.localPath && <span className="endpoint-path">本地路径：{endpoint.localPath}</span>}
             </div>
           ))}
         </div>
