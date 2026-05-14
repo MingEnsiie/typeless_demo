@@ -22,13 +22,14 @@ export function useHotkey({ disabled, mode, onDown, onUp, onTranslate, onRightAl
         onRightAltDown();
         return;
       }
+      if (event.code === 'AltLeft' && event.ctrlKey && !event.repeat) {
+        event.preventDefault();
+        onTranslate();
+        return;
+      }
       if (event.code === 'AltLeft' && !event.repeat && !isTyping) {
         event.preventDefault();
         onDown(mode);
-      }
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 't') {
-        event.preventDefault();
-        onTranslate();
       }
     };
     const up = (event: KeyboardEvent) => {

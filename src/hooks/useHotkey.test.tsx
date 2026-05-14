@@ -36,4 +36,30 @@ describe('useHotkey', () => {
     expect(onDown).not.toHaveBeenCalled();
     expect(onUp).not.toHaveBeenCalled();
   });
+
+  it('uses Ctrl plus left Alt as the push-to-translate key', () => {
+    const onDown = vi.fn();
+    const onUp = vi.fn();
+    const onTranslate = vi.fn();
+    renderHook(() => useHotkey({ mode: 'dictate', onDown, onUp, onTranslate }));
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'AltLeft', ctrlKey: true }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { code: 'AltLeft', ctrlKey: true }));
+
+    expect(onTranslate).toHaveBeenCalledTimes(1);
+    expect(onDown).not.toHaveBeenCalled();
+    expect(onUp).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not use Ctrl or Cmd plus Shift plus T for translation anymore', () => {
+    const onDown = vi.fn();
+    const onUp = vi.fn();
+    const onTranslate = vi.fn();
+    renderHook(() => useHotkey({ mode: 'dictate', onDown, onUp, onTranslate }));
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 't', ctrlKey: true, shiftKey: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 't', metaKey: true, shiftKey: true }));
+
+    expect(onTranslate).not.toHaveBeenCalled();
+  });
 });

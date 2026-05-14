@@ -22,7 +22,7 @@ export function Onboarding({ open, onClose }: { open: boolean; onClose: () => vo
         <article>
           <Languages size={20} />
           <strong>翻译模式</strong>
-          <span>切换目标语言，使用 Cmd/Ctrl+Shift+T 触发语音翻译。</span>
+          <span>切换目标语言，使用 Ctrl + 左 Alt 触发语音翻译。</span>
         </article>
       </div>
     </div>
