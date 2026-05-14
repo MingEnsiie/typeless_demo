@@ -15,10 +15,15 @@ export const DemoSurface = forwardRef<HTMLTextAreaElement, Props>(function DemoS
   return (
     <section className={streamingSelection ? 'demo-surface streaming-selection' : 'demo-surface'}>
       <div className="section-head">
-        <span>模拟目标应用</span>
+        <span>最终输出 · 模拟目标应用</span>
         <strong>{rule.label}</strong>
       </div>
-      <textarea ref={ref} value={value} placeholder={rule.placeholder} onChange={(event) => onChange(event.target.value)} />
+      <textarea
+        ref={ref}
+        value={value}
+        placeholder={`最终输出会写入这里。\n\n${rule.placeholder}`}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </section>
   );
 });

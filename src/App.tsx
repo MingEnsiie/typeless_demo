@@ -186,7 +186,7 @@ export default function App() {
             <HotkeyHint mode={config.mode} recording={recorder.recording} />
             <AppContextSwitcher value={config.appContext} onChange={config.setAppContext} />
           </div>
-          <Waveform levels={recorder.levels} active={recorder.recording || stateLabel === 'polishing'} />
+          <Waveform levels={recorder.levels} active={recorder.recording} />
           <DemoSurface
             ref={textareaRef}
             value={draft}

@@ -20,7 +20,7 @@ export function ResultPanel({
   return (
     <section className="result-panel">
       <div className="section-head">
-        <span>结果</span>
+        <span>处理过程</span>
         <button onClick={() => onCopy(shown)} disabled={!shown}>
           <Copy size={15} /> 复制
         </button>
@@ -32,7 +32,7 @@ export function ResultPanel({
             <p>{raw || '等待语音转写...'}</p>
           </article>
           <article>
-            <h3>TRANSLATED</h3>
+            <h3>TRANSLATION PREVIEW</h3>
             <p>{shown || '等待翻译...'}</p>
             {raw && (
               <button className="soft-action" onClick={onRetranslate}>
@@ -48,7 +48,7 @@ export function ResultPanel({
             <p>{raw || '等待语音转写...'}</p>
           </article>
           <article>
-            <h3>{mode === 'rewrite' ? 'REWRITTEN' : 'POLISHED'}</h3>
+            <h3>{mode === 'rewrite' ? 'REWRITE PREVIEW' : 'POLISH PREVIEW'}</h3>
             <p>{shown || '等待 AI 输出...'}</p>
           </article>
         </div>
