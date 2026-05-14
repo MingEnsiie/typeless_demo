@@ -17,12 +17,19 @@ export function useRecorder() {
   const stream = useRef<MediaStream | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
+  const audioContext = useRef<AudioContext | null>(null);
+  const analyser = useRef<AnalyserNode | null>(null);
+  const frequencyData = useRef<Uint8Array | null>(null);
 
   const start = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error('当前页面无法访问麦克风。远程访问时请使用 HTTPS 地址，并在浏览器里允许麦克风权限。');
     }
     stream.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const audio = setupAnalyser(stream.current);
+    audioContext.current = audio?.ctx ?? null;
+    analyser.current = audio?.node ?? null;
+    frequencyData.current = audio?.data ?? null;
     chunks.current = [];
     const mimeType = preferredMimeType();
     recorder.current = new MediaRecorder(stream.current, mimeType ? { mimeType } : undefined);
@@ -33,13 +40,11 @@ export function useRecorder() {
     startedAt.current = Date.now();
     setState((prev) => ({ ...prev, recording: true, elapsedMs: 0 }));
     timer.current = window.setInterval(() => {
+      const levels = readLevels(analyser.current, frequencyData.current);
       setState({
         recording: true,
         elapsedMs: Date.now() - startedAt.current,
-        levels: Array.from({ length: 32 }, (_, i) => {
-          const phase = Date.now() / 180 + i * 0.45;
-          return 0.18 + Math.abs(Math.sin(phase)) * 0.78;
-        }),
+        levels,
       });
     }, 80);
   }, []);
@@ -72,11 +77,33 @@ export function useRecorder() {
 
   const cleanup = () => {
     stream.current?.getTracks().forEach((track) => track.stop());
+    analyser.current?.disconnect();
+    void audioContext.current?.close();
     stream.current = null;
     recorder.current = null;
+    analyser.current = null;
+    audioContext.current = null;
+    frequencyData.current = null;
   };
 
   return { ...state, start, stop };
+}
+
+function setupAnalyser(stream: MediaStream): { ctx: AudioContext; node: AnalyserNode; data: Uint8Array } | null {
+  const AudioContextCtor = window.AudioContext;
+  if (!AudioContextCtor) return null;
+  const ctx = new AudioContextCtor();
+  const source = ctx.createMediaStreamSource(stream);
+  const node = ctx.createAnalyser();
+  node.fftSize = 64;
+  source.connect(node);
+  return { ctx, node, data: new Uint8Array(node.frequencyBinCount) };
+}
+
+function readLevels(node: AnalyserNode | null, data: Uint8Array | null): number[] {
+  if (!node || !data) return Array.from({ length: 32 }, () => 0);
+  node.getByteFrequencyData(data);
+  return Array.from(data, (value) => value / 255);
 }
 
 function preferredMimeType(): string | undefined {

@@ -1,13 +1,16 @@
 import type { AsrOptions, TranscriptResult } from './types';
 
 export async function transcribeCloud(audio: Blob, opts: AsrOptions): Promise<TranscriptResult> {
-  if (opts.provider === 'demo' || !opts.apiKey) {
+  if (opts.provider === 'demo') {
     await delay(450);
     return {
       text: '嗯 请帮我把这段口语整理成可以直接发送的文字 然后语气自然一点',
       durationMs: 450,
       provider: 'demo',
     };
+  }
+  if (!opts.apiKey) {
+    throw new Error(`请先在模型与 API 设置里填写 ${providerLabel(opts.provider)} 的 ASR API key`);
   }
 
   const form = new FormData();
@@ -31,6 +34,13 @@ export async function transcribeCloud(audio: Blob, opts: AsrOptions): Promise<Tr
     durationMs: 0,
     provider: opts.provider,
   };
+}
+
+function providerLabel(provider: AsrOptions['provider']): string {
+  if (provider === 'groq') return 'Groq Whisper Turbo';
+  if (provider === 'openai') return 'OpenAI Whisper';
+  if (provider === 'siliconflow') return 'SiliconFlow ASR';
+  return '当前 ASR 服务';
 }
 
 export function mediaFileName(audio: Blob): string {
