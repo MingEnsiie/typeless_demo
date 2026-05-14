@@ -15,6 +15,12 @@ export async function saveHistory(item: HistoryItem): Promise<HistoryItem[]> {
   return next;
 }
 
+export async function deleteHistoryItem(id: string): Promise<HistoryItem[]> {
+  const next = (await loadHistory()).filter((item) => item.id !== id);
+  await localforage.setItem(key, next);
+  return next;
+}
+
 export async function clearHistory(): Promise<void> {
   await localforage.removeItem(key);
 }

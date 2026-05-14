@@ -12,6 +12,7 @@ export const presetMap: Record<RewritePreset, string> = {
 export interface RewritePromptContext {
   tone: string;
   formality: string;
+  outputGuidance: string;
   dictionary: string[];
   targetLang: string;
 }
@@ -25,10 +26,11 @@ Rules:
 1. Output ONLY the rewritten text. No preamble, no quotes, no commentary.
 2. PRESERVE the user's language (do not translate unless instruction says so).
 3. Match the surrounding context tone: ${ctx.tone} (${ctx.formality}).
-4. Keep proper nouns and dictionary terms intact: ${dictionary}.
-5. If the instruction is ambiguous, make minimal changes preserving intent.
-6. Length: similar to original unless instruction explicitly says shorten/expand.
-7. If preset is translate, translate to ${ctx.targetLang}.
+4. Target app output style: ${ctx.outputGuidance}.
+5. Keep proper nouns and dictionary terms intact: ${dictionary}.
+6. If the instruction is ambiguous, make minimal changes preserving intent.
+7. Length: similar to original unless instruction explicitly says shorten/expand.
+8. If preset is translate, translate to ${ctx.targetLang}.
 
 Preset mapping:
 - formal: ${presetMap.formal}

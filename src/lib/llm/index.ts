@@ -8,6 +8,7 @@ export interface SharedLlmContext {
   tone: string;
   formality: string;
   markdown: boolean;
+  outputGuidance: string;
   dictionary: string[];
   opts: ChatOptions;
 }
@@ -46,6 +47,7 @@ export const llm = {
       targetLangName: getLanguageName(targetLang),
       tone: ctx.tone,
       formality: ctx.formality,
+      outputGuidance: ctx.outputGuidance,
       dictionary: ctx.dictionary,
     });
     return chatComplete(

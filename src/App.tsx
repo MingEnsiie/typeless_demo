@@ -25,7 +25,7 @@ import { findEndpoint } from '@/lib/llm/endpoints';
 import { getAppRule } from '@/lib/llm/prompts/app-rules';
 import type { RewritePreset } from '@/lib/llm/prompts/rewrite.v1';
 import { useConfigStore } from '@/lib/storage/config';
-import { loadHistory, saveHistory } from '@/lib/storage/history';
+import { deleteHistoryItem, loadHistory, saveHistory } from '@/lib/storage/history';
 import { appendFinalOutput, replaceRange } from '@/lib/text/selection';
 import { typelessMachine } from '@/machine/typeless.machine';
 import type { HistoryItem, TypelessMode } from '@/types';
@@ -236,6 +236,12 @@ export default function App() {
               setRaw(item.raw);
               setFinalText(item.finalText);
               setDraft((current) => `${current}${current ? '\n\n' : ''}${item.finalText}`);
+            }}
+            onDelete={(id) => {
+              void deleteHistoryItem(id).then((next) => {
+                setHistory(next);
+                toast.success('历史会话已删除');
+              });
             }}
           />
           <ModelManager models={config.models} onDownload={config.simulateModelDownload} />

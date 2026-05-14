@@ -3,6 +3,7 @@ export interface TranslatePromptContext {
   targetLangName: string;
   tone: string;
   formality: string;
+  outputGuidance: string;
   dictionary: string[];
 }
 
@@ -19,10 +20,11 @@ Rules:
 5. If the source text is ALREADY in ${ctx.targetLangName}, return it unchanged.
 6. If source contains mixed languages, translate the non-${ctx.targetLangName} portions only.
 7. Adapt register to: ${ctx.formality} (${ctx.tone}).
-8. For target_lang='auto', detect the source language and translate to:
+8. Target app output style: ${ctx.outputGuidance}.
+9. For target_lang='auto', detect the source language and translate to:
    - Chinese if source is non-Chinese
    - English if source is Chinese
-9. For RTL languages (ar, he), output in proper RTL direction.
+10. For RTL languages (ar, he), output in proper RTL direction.
 
 Examples:
 - Source (zh): "你好，今天天气不错" -> "Hello, the weather is nice today."

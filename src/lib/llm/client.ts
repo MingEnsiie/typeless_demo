@@ -55,12 +55,7 @@ async function demoCompletion(messages: ChatMessage[], onToken?: (token: string)
       .trim();
     result = result.length > 0 ? `${result}（已按指令优化）` : '已按指令优化的文本';
   } else {
-    result = user
-      .replace(/[嗯啊呃]|那个|就是|然后/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    result = result || '请帮我把这段口语整理成可以直接发送的文字，语气自然一点。';
-    result = `${result.replace(/^[,，。 ]+/, '')}。`;
+    result = formatDemoForApp(system, cleanTranscript(user));
   }
 
   let streamed = '';
@@ -70,4 +65,40 @@ async function demoCompletion(messages: ChatMessage[], onToken?: (token: string)
     await new Promise((resolve) => window.setTimeout(resolve, 8));
   }
   return result;
+}
+
+function cleanTranscript(input: string): string {
+  const result = input
+    .replace(/[嗯啊呃]|那个|就是|然后/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[,，。 ]+/, '');
+  return result || '请帮我把这段口语整理成可以直接发送的文字，语气自然一点';
+}
+
+function formatDemoForApp(system: string, text: string): string {
+  const sentence = withChinesePeriod(text);
+  if (system.includes('professional email') || system.includes('professional email: clear greeting')) {
+    return `Hi team,\n\n${sentence}\n\nBest,`;
+  }
+  if (system.includes('concise team chat') || system.includes('Slack message')) {
+    return `同步：${sentence}`;
+  }
+  if (system.includes('natural Chinese message') || system.includes('WeChat message')) {
+    return `好的，${sentence.replace(/。$/, '')}`;
+  }
+  if (system.includes('developer note') || system.includes('developer workflows')) {
+    return `## Update\n- ${sentence}\n\n## Action\n- Confirm the next implementation step.`;
+  }
+  if (system.includes('structured personal notes') || system.includes('structured notes')) {
+    return `## Notes\n- ${sentence}\n\n## Action Items\n- Follow up on the next step.`;
+  }
+  if (system.includes('friendly conversational writing') || system.includes('casual writing')) {
+    return `Hey, ${sentence}`;
+  }
+  return sentence;
+}
+
+function withChinesePeriod(text: string): string {
+  return /[。.!?！？]$/.test(text) ? text : `${text}。`;
 }

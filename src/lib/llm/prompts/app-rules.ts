@@ -7,6 +7,8 @@ export const APP_RULES: AppRule[] = [
     tone: 'professional email',
     formality: 'formal',
     markdown: false,
+    outputGuidance:
+      'Format as a professional email: clear greeting when useful, short paragraphs, explicit ask or next step, and a polite closing if the message is more than one sentence.',
     placeholder: 'Hi team,\n\nSelect text here, rewrite it, or hold left Alt to dictate...',
   },
   {
@@ -15,6 +17,8 @@ export const APP_RULES: AppRule[] = [
     tone: 'concise team chat',
     formality: 'casual',
     markdown: false,
+    outputGuidance:
+      'Format as a Slack message: direct, compact, no email greeting or sign-off, use one-line updates or short bullets, keep @mentions and channel-friendly wording.',
     placeholder: 'Quick update for the channel...',
   },
   {
@@ -23,6 +27,8 @@ export const APP_RULES: AppRule[] = [
     tone: 'natural Chinese message',
     formality: 'casual',
     markdown: false,
+    outputGuidance:
+      'Format as a natural WeChat message in Chinese when the input is Chinese: warm, brief, conversational, no corporate email structure, avoid heavy punctuation.',
     placeholder: '这里可以模拟微信输入...',
   },
   {
@@ -31,6 +37,8 @@ export const APP_RULES: AppRule[] = [
     tone: 'developer note with exact symbols preserved',
     formality: 'neutral',
     markdown: true,
+    outputGuidance:
+      'Format for developer workflows: preserve code symbols exactly, prefer Markdown, use commit/PR/code-review style, and separate context, change, and action when relevant.',
     placeholder: 'Draft a commit message, PR summary, or code note...',
   },
   {
@@ -39,6 +47,8 @@ export const APP_RULES: AppRule[] = [
     tone: 'structured personal notes',
     formality: 'neutral',
     markdown: true,
+    outputGuidance:
+      'Format as structured notes: concise headings or bullets, capture decisions and action items, keep scan-friendly Markdown, avoid chatty greetings.',
     placeholder: '- Meeting notes\n- Decisions\n- Follow-ups',
   },
   {
@@ -47,6 +57,8 @@ export const APP_RULES: AppRule[] = [
     tone: 'friendly conversational writing',
     formality: 'casual',
     markdown: false,
+    outputGuidance:
+      'Format as casual writing: friendly, simple, natural, preserve personality, no formal sign-off, avoid over-structuring unless the user dictated a list.',
     placeholder: 'Say something naturally...',
   },
 ];

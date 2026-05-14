@@ -18,6 +18,6 @@ describe('ResultPanel', () => {
     expect(screen.getByText('RAW ASR')).toBeInTheDocument();
     expect(screen.getByText('POLISH PREVIEW')).toBeInTheDocument();
     expect(screen.getByText('FINAL INPUT')).toBeInTheDocument();
-    expect(screen.getByText('最终输出区')).toBeInTheDocument();
+    expect(screen.getAllByText('polished words')).toHaveLength(2);
   });
 });

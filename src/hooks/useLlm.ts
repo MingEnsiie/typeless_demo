@@ -9,6 +9,7 @@ export function useLlm() {
       tone: rule.tone,
       formality: rule.formality,
       markdown: rule.markdown,
+      outputGuidance: rule.outputGuidance,
       dictionary: dictionaryAsTerms(dictionary),
       opts: {
         baseUrl: endpoint.baseUrl,

@@ -247,15 +247,27 @@ kbd {
 }
 .term-list div { display: grid; grid-template-columns: 1fr 1fr 34px; align-items: center; gap: 8px; }
 .term-list span, .model-list span { color: var(--muted); font-size: 12px; }
-.history-list button {
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 8px;
+  align-items: stretch;
+}
+.history-replay {
   display: block;
   text-align: left;
   min-height: 0;
   width: 100%;
   overflow: hidden;
 }
-.history-list button span { color: var(--faint); font-size: 11px; display: block; }
-.history-list button strong {
+.history-delete {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  padding: 0;
+}
+.history-replay span { color: var(--faint); font-size: 11px; display: block; }
+.history-replay strong {
   display: block;
   overflow: hidden;
   overflow-wrap: anywhere;

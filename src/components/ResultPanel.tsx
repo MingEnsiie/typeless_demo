@@ -45,7 +45,7 @@ export function ResultPanel({
         <ArrowRight className="flow-arrow" size={20} />
         <article className="final-step">
           <h3>FINAL INPUT</h3>
-          <p>{shown ? '最终输出区' : '等待写入最终输出区...'}</p>
+          <p>{shown || '等待写入最终输出区...'}</p>
         </article>
       </div>
     </section>

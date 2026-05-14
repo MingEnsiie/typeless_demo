@@ -8,6 +8,7 @@ export interface AppRule {
   tone: string;
   formality: 'formal' | 'neutral' | 'casual';
   markdown: boolean;
+  outputGuidance: string;
   placeholder: string;
 }
 

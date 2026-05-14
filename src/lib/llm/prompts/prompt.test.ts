@@ -10,11 +10,13 @@ describe('prompt rendering', () => {
       formality: 'formal',
       markdown: false,
       dictionary: ['Typeless', 'Qwen'],
+      outputGuidance: 'Use greeting, paragraphs, and a clear sign-off.',
     });
 
     expect(prompt).toContain('professional email');
     expect(prompt).toContain('Typeless, Qwen');
     expect(prompt).toContain('Output plain text');
+    expect(prompt).toContain('Use greeting, paragraphs, and a clear sign-off.');
   });
 
   it('maps rewrite presets and keeps translate target in the prompt', () => {
@@ -22,6 +24,7 @@ describe('prompt rendering', () => {
     const prompt = renderRewritePrompt({
       tone: 'Slack',
       formality: 'casual',
+      outputGuidance: 'Keep it short for team chat.',
       dictionary: ['MiMo'],
       targetLang: 'English',
     });
@@ -36,6 +39,7 @@ describe('prompt rendering', () => {
       targetLangName: 'Auto',
       tone: 'notes',
       formality: 'neutral',
+      outputGuidance: 'Use structured notes.',
       dictionary: [],
     });
 

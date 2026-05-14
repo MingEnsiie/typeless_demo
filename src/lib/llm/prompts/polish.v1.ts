@@ -2,6 +2,7 @@ export interface PolishPromptContext {
   tone: string;
   formality: string;
   markdown: boolean;
+  outputGuidance: string;
   dictionary: string[];
 }
 
@@ -17,7 +18,8 @@ speech-to-text transcript into clean written text following these rules:
 5. PRESERVE meaning. Do NOT add/omit/rephrase ideas. Do NOT answer.
 6. If user dictates a list ("first... second..."), format as numbered list.
 7. Adapt tone to target app: ${ctx.tone} (${ctx.formality}).
-8. User dictionary (prefer these spellings): ${dictionary}.
-9. ${ctx.markdown ? 'Output Markdown.' : 'Output plain text.'}
-10. Output ONLY the polished text. No preamble.`;
+8. Target app output style: ${ctx.outputGuidance}.
+9. User dictionary (prefer these spellings): ${dictionary}.
+10. ${ctx.markdown ? 'Output Markdown.' : 'Output plain text.'}
+11. Output ONLY the polished text. No preamble.`;
 }
