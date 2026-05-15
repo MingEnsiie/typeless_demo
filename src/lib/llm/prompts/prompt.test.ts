@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getAppRule } from './app-rules';
 import { renderPolishPrompt } from './polish.v1';
 import { presetMap, renderRewritePrompt } from './rewrite.v1';
 import { renderTranslatePrompt } from './translate.v1';
@@ -45,5 +46,21 @@ describe('prompt rendering', () => {
 
     expect(prompt).toContain("target_lang='auto'");
     expect(prompt).toContain('Output ONLY the translation');
+  });
+
+  it('keeps notes output as plain text instead of Markdown', () => {
+    const notes = getAppRule('notes');
+    const prompt = renderPolishPrompt({
+      tone: notes.tone,
+      formality: notes.formality,
+      markdown: notes.markdown,
+      dictionary: [],
+      outputGuidance: notes.outputGuidance,
+    });
+
+    expect(notes.markdown).toBe(false);
+    expect(prompt).toContain('Output plain text');
+    expect(prompt).toContain('do not add Markdown headings');
+    expect(prompt).not.toContain('Output Markdown');
   });
 });

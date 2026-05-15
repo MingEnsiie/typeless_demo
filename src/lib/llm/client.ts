@@ -90,8 +90,8 @@ function formatDemoForApp(system: string, text: string): string {
   if (system.includes('developer note') || system.includes('developer workflows')) {
     return `## Update\n- ${sentence}\n\n## Action\n- Confirm the next implementation step.`;
   }
-  if (system.includes('structured personal notes') || system.includes('structured notes')) {
-    return `## Notes\n- ${sentence}\n\n## Action Items\n- Follow up on the next step.`;
+  if (system.includes('plain personal notes') || system.includes('normal plain-text notes')) {
+    return `Notes\n${sentence}\n\nFollow-ups\nFollow up on the next step.`;
   }
   if (system.includes('friendly conversational writing') || system.includes('casual writing')) {
     return `Hey, ${sentence}`;

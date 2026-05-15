@@ -87,7 +87,7 @@ POST /api/llm/qwen35-local/v1/chat/completions
 - `Slack`：简短团队消息，不使用邮件式问候和签名。
 - `WeChat`：自然中文口语消息。
 - `Code`：面向开发者，保留代码符号，偏 commit / PR / review 风格。
-- `Notes`：结构化笔记，强调标题、要点、行动项。
+- `Notes`：普通文本笔记，保留清晰换行和后续事项，不强制 Markdown 标题或列表。
 - `Casual`：自然友好表达，不强行结构化。
 
 ## 技术栈

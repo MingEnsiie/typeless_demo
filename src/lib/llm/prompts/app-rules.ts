@@ -44,12 +44,12 @@ export const APP_RULES: AppRule[] = [
   {
     id: 'notes',
     label: 'Notes',
-    tone: 'structured personal notes',
+    tone: 'plain personal notes',
     formality: 'neutral',
-    markdown: true,
+    markdown: false,
     outputGuidance:
-      'Format as structured notes: concise headings or bullets, capture decisions and action items, keep scan-friendly Markdown, avoid chatty greetings.',
-    placeholder: '- Meeting notes\n- Decisions\n- Follow-ups',
+      'Format as normal plain-text notes: keep the wording clear and scan-friendly, preserve useful line breaks, capture decisions and follow-ups when present, but do not add Markdown headings, Markdown bullets, or code-style formatting unless the user explicitly dictated them.',
+    placeholder: 'Meeting notes\nDecisions\nFollow-ups',
   },
   {
     id: 'casual',
